@@ -1,11 +1,12 @@
 {
-  "extends": "../../packages/config/typescript/base.json",
+  "extends": "../config/typescript/base.json",
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "rootDir": "src",
     "outDir": "dist",
-    "esModuleInterop": true,
+    "declaration": true,
+    "declarationMap": true,
     "sourceMap": true
   },
   "include": ["src"]

@@ -272,20 +272,20 @@ Release definition of done:
 
 ## Daily target sequence
 
-| Date | Primary target | Required checkpoint |
-| --- | --- | --- |
-| Aug 2 | CHG-001 through CHG-003 | Explain the complete route-search flow |
-| Aug 3 | CHG-010 through CHG-013 | Explain monorepo and process boundaries |
-| Aug 4 | CHG-020 through CHG-023 | Explain auth vs authorization |
-| Aug 5 | CHG-030 and CHG-031 | Explain normalization and coordinate order |
-| Aug 6 | CHG-032 through CHG-034 | Trace one route request end to end |
-| Aug 7 | CHG-035 and CHG-040 | Explain client/server state and relationships |
-| Aug 8 | CHG-041 and CHG-042 | Explain validation at three layers |
-| Aug 9 | CHG-050 and CHG-051 | Recalculate dashboard metrics manually |
-| Aug 10 | UI/error-state polish | Demonstrate mobile and failure behavior |
-| Aug 11 | CHG-060 and CHG-061 | Explain threat model and test pyramid |
-| Aug 12 | CHG-062 and CHG-063 | Explain measured bottleneck and deployment |
-| Aug 13 | CHG-064 and defect buffer | Deliver two-minute project walkthrough |
+| Date   | Primary target            | Required checkpoint                           |
+| ------ | ------------------------- | --------------------------------------------- |
+| Aug 2  | CHG-001 through CHG-003   | Explain the complete route-search flow        |
+| Aug 3  | CHG-010 through CHG-013   | Explain monorepo and process boundaries       |
+| Aug 4  | CHG-020 through CHG-023   | Explain auth vs authorization                 |
+| Aug 5  | CHG-030 and CHG-031       | Explain normalization and coordinate order    |
+| Aug 6  | CHG-032 through CHG-034   | Trace one route request end to end            |
+| Aug 7  | CHG-035 and CHG-040       | Explain client/server state and relationships |
+| Aug 8  | CHG-041 and CHG-042       | Explain validation at three layers            |
+| Aug 9  | CHG-050 and CHG-051       | Recalculate dashboard metrics manually        |
+| Aug 10 | UI/error-state polish     | Demonstrate mobile and failure behavior       |
+| Aug 11 | CHG-060 and CHG-061       | Explain threat model and test pyramid         |
+| Aug 12 | CHG-062 and CHG-063       | Explain measured bottleneck and deployment    |
+| Aug 13 | CHG-064 and defect buffer | Deliver two-minute project walkthrough        |
 
 This schedule is a target, not permission to merge incomplete work. Scope is
 reduced from P1 before quality criteria are skipped.

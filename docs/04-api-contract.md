@@ -134,13 +134,16 @@ Response:
     "route": {
       "geometry": {
         "type": "LineString",
-        "coordinates": [[-118.60, 34.17], [-117.16, 32.72]]
+        "coordinates": [
+          [-118.6, 34.17],
+          [-117.16, 32.72]
+        ]
       },
       "distanceMeters": 210000,
       "durationSeconds": 9000,
       "origin": {
         "label": "Woodland Hills, Los Angeles, California",
-        "longitude": -118.60,
+        "longitude": -118.6,
         "latitude": 34.17
       },
       "destination": {
@@ -154,8 +157,8 @@ Response:
         "id": "ecba119c-963d-4931-acb8-1320791258be",
         "name": "Example Charging Station",
         "network": "Example Network",
-        "longitude": -117.90,
-        "latitude": 33.80,
+        "longitude": -117.9,
+        "latitude": 33.8,
         "distanceFromRouteMeters": 1500,
         "connectorCodes": ["CCS"],
         "compatible": true,

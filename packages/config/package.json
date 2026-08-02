@@ -1,0 +1,16 @@
+{
+  "name": "@chargewise/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "typescript",
+    "eslint",
+    "prettier"
+  ],
+  "exports": {
+    "./typescript/base.json": "./typescript/base.json",
+    "./eslint/base": "./eslint/base.js",
+    "./prettier": "./prettier/index.js"
+  }
+}

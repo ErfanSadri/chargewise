@@ -7,8 +7,8 @@ if (!apiKey) {
 }
 
 if (!nlrApiKey) {
-    throw new Error("NLR API key is missing.");
-  }
+  throw new Error("NLR API key is missing.");
+}
 
 const origin = [-118.593153, 34.15404];
 const destination = [-117.23952, 32.877207];
@@ -24,7 +24,7 @@ const response = await fetch(
     body: JSON.stringify({
       coordinates: [origin, destination],
     }),
-  }
+  },
 );
 
 if (!response.ok) {
@@ -38,23 +38,19 @@ if (!route) {
   throw new Error("No route was found.");
 }
 
-const distanceMiles =
-  route.properties.summary.distance / 1609.344;
+const distanceMiles = route.properties.summary.distance / 1609.344;
 
-const durationHours =
-  route.properties.summary.duration / 3600;
+const durationHours = route.properties.summary.duration / 3600;
 
 console.log("Distance:", distanceMiles.toFixed(1), "miles");
 console.log("Duration:", durationHours.toFixed(2), "hours");
 console.log("Geometry:", route.geometry.type);
 console.log("Route points:", route.geometry.coordinates.length);
 
-const routeWkt = coordinatesToWkt(
-    route.geometry.coordinates
-  );
-  
-  console.log("WKT length:", routeWkt.length);
-  console.log("WKT preview:", routeWkt.slice(0, 100) + "...");
+const routeWkt = coordinatesToWkt(route.geometry.coordinates);
+
+console.log("WKT length:", routeWkt.length);
+console.log("WKT preview:", routeWkt.slice(0, 100) + "...");
 
 const stationParameters = new URLSearchParams({
   route: routeWkt,
@@ -76,29 +72,21 @@ const stationResponse = await fetch(
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: stationParameters,
-  }
+  },
 );
 
 if (!stationResponse.ok) {
-  throw new Error(
-    `Station request failed with status ${stationResponse.status}`
-  );
+  throw new Error(`Station request failed with status ${stationResponse.status}`);
 }
 
 const stationData = await stationResponse.json();
 
-console.log(
-    "Total stations near route:",
-    stationData.total_results
-  );
-  
-console.log(
-    "Stations returned:",
-    stationData.fuel_stations.length
-  );
-  
+console.log("Total stations near route:", stationData.total_results);
+
+console.log("Stations returned:", stationData.fuel_stations.length);
+
 for (const station of stationData.fuel_stations.slice(0, 10)) {
-    console.log(
-      `- ${station.station_name} | ${station.ev_network ?? "Unknown network"} | ${station.city}, ${station.state}`
-    );
-  }
+  console.log(
+    `- ${station.station_name} | ${station.ev_network ?? "Unknown network"} | ${station.city}, ${station.state}`,
+  );
+}

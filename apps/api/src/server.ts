@@ -1,13 +1,11 @@
 import { createApp } from "./app.js";
+import { loadLocalEnvironment, parseEnvironment } from "./config/environment.js";
 
-const port = Number(process.env.API_PORT ?? 3000);
+loadLocalEnvironment();
 
-if (!Number.isInteger(port) || port <= 0) {
-  throw new Error("API_PORT must be a positive number.");
-}
-
+const environment = parseEnvironment();
 const app = createApp();
 
-app.listen(port, () => {
-  console.log(`ChargeWise API running at http://localhost:${port}`);
+app.listen(environment.API_PORT, () => {
+  console.log(`ChargeWise API running at http://localhost:${environment.API_PORT}`);
 });
