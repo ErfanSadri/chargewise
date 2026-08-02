@@ -1,0 +1,20 @@
+{
+  "name": "chargewise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Full-stack EV charging intelligence platform for route-based charger discovery and personal charging analytics.",
+  "scripts": {
+  "dev": "pnpm --parallel --filter @chargewise/api --filter web run dev",
+  "build": "pnpm -r run build",
+  "typecheck": "pnpm -r run typecheck"
+  },
+  "author": "Erfan Sadri",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.18.0",
+      "onFail": "download"
+    }
+  },
+  "type": "module"
+}
