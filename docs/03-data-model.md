@@ -30,13 +30,13 @@ erDiagram
 
 ## 3. `users`
 
-| Column | Type | Constraint/purpose |
-| --- | --- | --- |
-| `id` | UUID | Primary key |
-| `email` | VARCHAR(320) | Required, case-insensitive unique behavior |
-| `password_hash` | TEXT | Required Argon2id hash; never returned by APIs |
-| `created_at` | TIMESTAMPTZ | Required, default current time |
-| `updated_at` | TIMESTAMPTZ | Required, updated on mutation |
+| Column          | Type         | Constraint/purpose                             |
+| --------------- | ------------ | ---------------------------------------------- |
+| `id`            | UUID         | Primary key                                    |
+| `email`         | VARCHAR(320) | Required, case-insensitive unique behavior     |
+| `password_hash` | TEXT         | Required Argon2id hash; never returned by APIs |
+| `created_at`    | TIMESTAMPTZ  | Required, default current time                 |
+| `updated_at`    | TIMESTAMPTZ  | Required, updated on mutation                  |
 
 Implementation note: normalize email for lookup and enforce uniqueness through
 a lowercased value or a case-insensitive PostgreSQL type. The exact approach is
@@ -44,21 +44,21 @@ chosen in the database implementation lesson.
 
 ## 4. `vehicles`
 
-| Column | Type | Constraint/purpose |
-| --- | --- | --- |
-| `id` | UUID | Primary key |
-| `user_id` | UUID | Required FK to `users`, cascade delete |
-| `nickname` | VARCHAR(80) | Required |
-| `make` | VARCHAR(80) | Required |
-| `model` | VARCHAR(120) | Required |
-| `year` | SMALLINT | Required, reasonable year check |
-| `battery_capacity_kwh` | NUMERIC(6,2) | Optional, positive |
-| `efficiency_mi_per_kwh` | NUMERIC(5,2) | Optional, positive |
-| `connector_types` | TEXT[] | Required, at least one supported enum value |
-| `preferred_networks` | TEXT[] | Required, defaults to empty array |
-| `is_default` | BOOLEAN | Required, default false |
-| `created_at` | TIMESTAMPTZ | Required |
-| `updated_at` | TIMESTAMPTZ | Required |
+| Column                  | Type         | Constraint/purpose                          |
+| ----------------------- | ------------ | ------------------------------------------- |
+| `id`                    | UUID         | Primary key                                 |
+| `user_id`               | UUID         | Required FK to `users`, cascade delete      |
+| `nickname`              | VARCHAR(80)  | Required                                    |
+| `make`                  | VARCHAR(80)  | Required                                    |
+| `model`                 | VARCHAR(120) | Required                                    |
+| `year`                  | SMALLINT     | Required, reasonable year check             |
+| `battery_capacity_kwh`  | NUMERIC(6,2) | Optional, positive                          |
+| `efficiency_mi_per_kwh` | NUMERIC(5,2) | Optional, positive                          |
+| `connector_types`       | TEXT[]       | Required, at least one supported enum value |
+| `preferred_networks`    | TEXT[]       | Required, defaults to empty array           |
+| `is_default`            | BOOLEAN      | Required, default false                     |
+| `created_at`            | TIMESTAMPTZ  | Required                                    |
+| `updated_at`            | TIMESTAMPTZ  | Required                                    |
 
 Only one vehicle per user may be the default. This is enforced with a partial
 unique index on `user_id WHERE is_default = true`.
@@ -76,26 +76,26 @@ code maps to the internal `CCS` value.
 
 ## 5. `stations`
 
-| Column | Type | Constraint/purpose |
-| --- | --- | --- |
-| `id` | UUID | Internal primary key |
-| `source` | VARCHAR(30) | Required; initially `NLR_AFDC` |
-| `source_station_id` | VARCHAR(80) | Required source identifier |
-| `name` | VARCHAR(200) | Required |
-| `network` | VARCHAR(120) | Optional normalized network |
-| `street_address` | VARCHAR(200) | Optional |
-| `city` | VARCHAR(120) | Optional |
-| `state` | VARCHAR(40) | Optional |
-| `postal_code` | VARCHAR(20) | Optional |
-| `location` | GEOGRAPHY(Point,4326) | Required longitude/latitude point |
-| `access_code` | VARCHAR(40) | Optional source access code |
-| `status_code` | VARCHAR(40) | Optional source operating status |
-| `level_2_port_count` | INTEGER | Nonnegative, default 0 |
-| `dc_fast_port_count` | INTEGER | Nonnegative, default 0 |
-| `connector_codes` | TEXT[] | Required, default empty array |
-| `raw_source_data` | JSONB | Optional diagnostic/source snapshot |
-| `source_updated_at` | TIMESTAMPTZ | Optional timestamp from source |
-| `last_synced_at` | TIMESTAMPTZ | Required ingestion timestamp |
+| Column               | Type                  | Constraint/purpose                  |
+| -------------------- | --------------------- | ----------------------------------- |
+| `id`                 | UUID                  | Internal primary key                |
+| `source`             | VARCHAR(30)           | Required; initially `NLR_AFDC`      |
+| `source_station_id`  | VARCHAR(80)           | Required source identifier          |
+| `name`               | VARCHAR(200)          | Required                            |
+| `network`            | VARCHAR(120)          | Optional normalized network         |
+| `street_address`     | VARCHAR(200)          | Optional                            |
+| `city`               | VARCHAR(120)          | Optional                            |
+| `state`              | VARCHAR(40)           | Optional                            |
+| `postal_code`        | VARCHAR(20)           | Optional                            |
+| `location`           | GEOGRAPHY(Point,4326) | Required longitude/latitude point   |
+| `access_code`        | VARCHAR(40)           | Optional source access code         |
+| `status_code`        | VARCHAR(40)           | Optional source operating status    |
+| `level_2_port_count` | INTEGER               | Nonnegative, default 0              |
+| `dc_fast_port_count` | INTEGER               | Nonnegative, default 0              |
+| `connector_codes`    | TEXT[]                | Required, default empty array       |
+| `raw_source_data`    | JSONB                 | Optional diagnostic/source snapshot |
+| `source_updated_at`  | TIMESTAMPTZ           | Optional timestamp from source      |
+| `last_synced_at`     | TIMESTAMPTZ           | Required ingestion timestamp        |
 
 Indexes and constraints:
 
@@ -109,35 +109,35 @@ same route search updates the existing station instead of creating duplicates.
 
 ## 6. `favorites`
 
-| Column | Type | Constraint/purpose |
-| --- | --- | --- |
-| `user_id` | UUID | FK to `users`, cascade delete |
-| `station_id` | UUID | FK to `stations`, cascade delete |
-| `created_at` | TIMESTAMPTZ | Required |
+| Column       | Type        | Constraint/purpose               |
+| ------------ | ----------- | -------------------------------- |
+| `user_id`    | UUID        | FK to `users`, cascade delete    |
+| `station_id` | UUID        | FK to `stations`, cascade delete |
+| `created_at` | TIMESTAMPTZ | Required                         |
 
 Primary key: (`user_id`, `station_id`). This makes a duplicate favorite
 impossible at the database level.
 
 ## 7. `charging_sessions`
 
-| Column | Type | Constraint/purpose |
-| --- | --- | --- |
-| `id` | UUID | Primary key |
-| `user_id` | UUID | Required FK to `users`, cascade delete |
-| `vehicle_id` | UUID | Required FK to `vehicles` |
-| `station_id` | UUID | Required FK to `stations` |
-| `started_at` | TIMESTAMPTZ | Required |
-| `charging_minutes` | INTEGER | Required, greater than 0 |
-| `wait_minutes` | INTEGER | Required, at least 0 |
-| `energy_added_kwh` | NUMERIC(7,3) | Required, greater than 0 |
-| `total_cost` | NUMERIC(10,2) | Required, at least 0 |
-| `starting_soc` | SMALLINT | Required, 0 through 99 |
-| `ending_soc` | SMALLINT | Required, 1 through 100 and greater than start |
-| `odometer_miles` | INTEGER | Optional, nonnegative |
-| `issue_type` | ENUM | Required, default `NONE` |
-| `notes` | VARCHAR(1000) | Optional |
-| `created_at` | TIMESTAMPTZ | Required |
-| `updated_at` | TIMESTAMPTZ | Required |
+| Column             | Type          | Constraint/purpose                             |
+| ------------------ | ------------- | ---------------------------------------------- |
+| `id`               | UUID          | Primary key                                    |
+| `user_id`          | UUID          | Required FK to `users`, cascade delete         |
+| `vehicle_id`       | UUID          | Required FK to `vehicles`                      |
+| `station_id`       | UUID          | Required FK to `stations`                      |
+| `started_at`       | TIMESTAMPTZ   | Required                                       |
+| `charging_minutes` | INTEGER       | Required, greater than 0                       |
+| `wait_minutes`     | INTEGER       | Required, at least 0                           |
+| `energy_added_kwh` | NUMERIC(7,3)  | Required, greater than 0                       |
+| `total_cost`       | NUMERIC(10,2) | Required, at least 0                           |
+| `starting_soc`     | SMALLINT      | Required, 0 through 99                         |
+| `ending_soc`       | SMALLINT      | Required, 1 through 100 and greater than start |
+| `odometer_miles`   | INTEGER       | Optional, nonnegative                          |
+| `issue_type`       | ENUM          | Required, default `NONE`                       |
+| `notes`            | VARCHAR(1000) | Optional                                       |
+| `created_at`       | TIMESTAMPTZ   | Required                                       |
+| `updated_at`       | TIMESTAMPTZ   | Required                                       |
 
 `issue_type` values:
 
@@ -156,19 +156,19 @@ key design.
 
 ## 8. `saved_routes` (P1)
 
-| Column | Type | Constraint/purpose |
-| --- | --- | --- |
-| `id` | UUID | Primary key |
-| `user_id` | UUID | Required FK to `users`, cascade delete |
-| `name` | VARCHAR(120) | Required |
-| `origin_label` | VARCHAR(240) | Required |
-| `destination_label` | VARCHAR(240) | Required |
-| `origin_point` | GEOGRAPHY(Point,4326) | Required |
-| `destination_point` | GEOGRAPHY(Point,4326) | Required |
-| `route_geometry` | GEOMETRY(LineString,4326) | Required |
-| `distance_meters` | INTEGER | Required, positive |
-| `duration_seconds` | INTEGER | Required, positive |
-| `created_at` | TIMESTAMPTZ | Required |
+| Column              | Type                      | Constraint/purpose                     |
+| ------------------- | ------------------------- | -------------------------------------- |
+| `id`                | UUID                      | Primary key                            |
+| `user_id`           | UUID                      | Required FK to `users`, cascade delete |
+| `name`              | VARCHAR(120)              | Required                               |
+| `origin_label`      | VARCHAR(240)              | Required                               |
+| `destination_label` | VARCHAR(240)              | Required                               |
+| `origin_point`      | GEOGRAPHY(Point,4326)     | Required                               |
+| `destination_point` | GEOGRAPHY(Point,4326)     | Required                               |
+| `route_geometry`    | GEOMETRY(LineString,4326) | Required                               |
+| `distance_meters`   | INTEGER                   | Required, positive                     |
+| `duration_seconds`  | INTEGER                   | Required, positive                     |
+| `created_at`        | TIMESTAMPTZ               | Required                               |
 
 ## 9. Derived analytics
 

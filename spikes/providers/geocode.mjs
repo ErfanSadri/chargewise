@@ -5,9 +5,7 @@ if (!apiKey) {
 }
 
 async function geocode(fields) {
-  const url = new URL(
-    "https://api.heigit.org/pelias/v1/search/structured"
-  );
+  const url = new URL("https://api.heigit.org/pelias/v1/search/structured");
 
   for (const [name, value] of Object.entries(fields)) {
     url.searchParams.set(name, value);
@@ -39,12 +37,12 @@ async function geocode(fields) {
 }
 
 const origin = await geocode({
-    neighbourhood: "Woodland Hills",
-    locality: "Los Angeles",
-    region: "California",
-    postalcode: "91364",
-    country: "United States",
-  });
+  neighbourhood: "Woodland Hills",
+  locality: "Los Angeles",
+  region: "California",
+  postalcode: "91364",
+  country: "United States",
+});
 
 const destination = await geocode({
   address: "9500 Gilman Drive",
