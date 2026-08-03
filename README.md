@@ -30,6 +30,29 @@ been documented.
 - Vitest, Supertest, React Testing Library, and Playwright
 - Docker Compose and GitHub Actions
 
+## Local infrastructure
+
+Start PostgreSQL with PostGIS and Redis in the background:
+
+```bash
+docker compose up -d
+```
+
+PostgreSQL is available at `127.0.0.1:5433`, and Redis is available at
+`127.0.0.1:6379`.
+
+Check their status:
+
+```bash
+docker compose ps
+```
+
+Stop the containers without deleting their named volumes:
+
+```bash
+docker compose down
+```
+
 ## Source-of-truth documents
 
 1. [`docs/01-product-requirements.md`](docs/01-product-requirements.md)
