@@ -21,7 +21,9 @@ describe("parseEnvironment", () => {
   });
 
   it("requires a session secret", () => {
-    const { SESSION_SECRET: _, ...environmentWithoutSessionSecret } = validEnvironment;
+    const environmentWithoutSessionSecret = Object.fromEntries(
+      Object.entries(validEnvironment).filter(([key]) => key !== "SESSION_SECRET"),
+    );
 
     expect(() => parseEnvironment(environmentWithoutSessionSecret)).toThrowError(
       "Invalid environment configuration",

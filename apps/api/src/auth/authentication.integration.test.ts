@@ -120,14 +120,6 @@ function requireDatabaseConnection(): DatabaseConnection {
   return databaseConnection;
 }
 
-function requireSessionInfrastructure(): SessionInfrastructure {
-  if (sessionInfrastructure === undefined) {
-    throw new Error("The authentication Redis infrastructure is not ready");
-  }
-
-  return sessionInfrastructure;
-}
-
 function requireRedisControlClient(): ReturnType<typeof createClient> {
   if (redisControlClient === undefined) {
     throw new Error("The authentication Redis test client is not ready");
