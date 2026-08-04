@@ -19,6 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6-alpine
+        env:
+          POSTGRES_DB: chargewise_test
+          POSTGRES_USER: chargewise
+          POSTGRES_PASSWORD: chargewise_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chargewise -d chargewise_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -50,8 +65,15 @@ jobs:
       - name: Type-check
         run: pnpm typecheck
 
+      - name: Check migrations
+        run: pnpm db:check
+        env:
+          DATABASE_URL: postgresql://chargewise:chargewise_ci@127.0.0.1:5432/chargewise_test
+
       - name: Test
         run: pnpm test
+        env:
+          TEST_DATABASE_URL: postgresql://chargewise:chargewise_ci@127.0.0.1:5432/chargewise_test
 
       - name: Build
         run: pnpm build

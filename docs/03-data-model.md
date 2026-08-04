@@ -38,9 +38,10 @@ erDiagram
 | `created_at`    | TIMESTAMPTZ  | Required, default current time                 |
 | `updated_at`    | TIMESTAMPTZ  | Required, updated on mutation                  |
 
-Implementation note: normalize email for lookup and enforce uniqueness through
-a lowercased value or a case-insensitive PostgreSQL type. The exact approach is
-chosen in the database implementation lesson.
+Implementation note: the application supplies email as a trimmed, lowercase
+value. A database check rejects values that are not normalized, and a regular
+unique constraint then provides case-insensitive unique behavior. A database
+trigger sets `updated_at` to the current time whenever a user row changes.
 
 ## 4. `vehicles`
 
@@ -51,17 +52,20 @@ chosen in the database implementation lesson.
 | `nickname`              | VARCHAR(80)  | Required                                    |
 | `make`                  | VARCHAR(80)  | Required                                    |
 | `model`                 | VARCHAR(120) | Required                                    |
-| `year`                  | SMALLINT     | Required, reasonable year check             |
+| `year`                  | SMALLINT     | Required, 1990 through 2100 inclusive       |
 | `battery_capacity_kwh`  | NUMERIC(6,2) | Optional, positive                          |
 | `efficiency_mi_per_kwh` | NUMERIC(5,2) | Optional, positive                          |
 | `connector_types`       | TEXT[]       | Required, at least one supported enum value |
 | `preferred_networks`    | TEXT[]       | Required, defaults to empty array           |
 | `is_default`            | BOOLEAN      | Required, default false                     |
 | `created_at`            | TIMESTAMPTZ  | Required                                    |
-| `updated_at`            | TIMESTAMPTZ  | Required                                    |
+| `updated_at`            | TIMESTAMPTZ  | Required, updated on mutation               |
 
 Only one vehicle per user may be the default. This is enforced with a partial
 unique index on `user_id WHERE is_default = true`.
+
+A database trigger sets `updated_at` to the current time whenever a vehicle row
+changes.
 
 Initial connector enum values:
 
