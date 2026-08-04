@@ -1,6 +1,14 @@
 import type { ErrorRequestHandler, Request, RequestHandler, Response } from "express";
 
-type ApiErrorCode = "VALIDATION_ERROR" | "NOT_FOUND" | "INTERNAL_ERROR";
+type ApiErrorCode =
+  | "VALIDATION_ERROR"
+  | "UNAUTHENTICATED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "RATE_LIMITED"
+  | "SERVICE_UNAVAILABLE"
+  | "INTERNAL_ERROR";
 
 interface ErrorResponseBody {
   error: {
@@ -12,7 +20,7 @@ interface ErrorResponseBody {
 }
 
 interface PublicError {
-  statusCode: 400 | 404 | 413 | 500;
+  statusCode: 400 | 401 | 403 | 404 | 409 | 413 | 429 | 500 | 503;
   code: ApiErrorCode;
   message: string;
 }
@@ -39,6 +47,52 @@ export function sendValidationError(request: Request, response: Response): void 
     statusCode: 400,
     code: "VALIDATION_ERROR",
     message: "Request validation failed",
+  });
+}
+
+export function sendUnauthenticatedError(request: Request, response: Response): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 401,
+    code: "UNAUTHENTICATED",
+    message: "Authentication required",
+  });
+}
+
+export function sendForbiddenError(request: Request, response: Response): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 403,
+    code: "FORBIDDEN",
+    message: "Request is not allowed",
+  });
+}
+
+export function sendConflictError(request: Request, response: Response): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 409,
+    code: "CONFLICT",
+    message: "An account with this email already exists",
+  });
+}
+
+export function sendRateLimitedError(
+  request: Request,
+  response: Response,
+  retryAfterSeconds: number,
+): void {
+  response.set("Retry-After", String(retryAfterSeconds));
+
+  sendError(response, getRequestId(request), {
+    statusCode: 429,
+    code: "RATE_LIMITED",
+    message: "Too many requests",
+  });
+}
+
+export function sendServiceUnavailableError(request: Request, response: Response): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 503,
+    code: "SERVICE_UNAVAILABLE",
+    message: "Service temporarily unavailable",
   });
 }
 
@@ -97,6 +151,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
     },
     "Unhandled request error",
   );
+
   sendError(response, getRequestId(request), {
     statusCode: 500,
     code: "INTERNAL_ERROR",

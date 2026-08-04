@@ -154,6 +154,27 @@ boundaries.
 Learning objective: distinguish hashing, cookies, sessions, authentication, and
 authorization.
 
+Tasks:
+
+- Add shared request and response schemas for register, login, logout, and the
+  current user.
+- Add a user repository, Argon2id password hashing, and a Redis-backed session
+  store.
+- Add authentication middleware and the four `/api/v1/auth` endpoints.
+- Enforce cookie, origin, rate-limit, and generic authentication-error rules.
+- Test the complete lifecycle against disposable PostgreSQL and Redis data.
+
+Definition of done:
+
+- Register, login, logout, and current-user requests match the API contract.
+- A valid session survives a browser refresh until its fixed expiry.
+- Login rotates the current browser session, and logout prevents token replay.
+- Passwords and session tokens are never returned or logged; only Argon2id
+  password hashes are stored.
+- Invalid credentials and invalid sessions use generic unauthenticated errors.
+- Unit, API, PostgreSQL, and Redis integration tests cover important success,
+  validation, conflict, rate-limit, origin, expiry, and dependency-failure paths.
+
 ### CHG-022 — Implement vehicle API
 
 Learning objective: implement CRUD while enforcing ownership and database

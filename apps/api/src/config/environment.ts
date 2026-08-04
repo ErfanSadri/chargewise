@@ -82,6 +82,7 @@ const environmentSchema = z.object({
   WEB_ORIGIN: webOriginSchema,
   DATABASE_URL: databaseUrlSchema,
   REDIS_URL: redisUrlSchema,
+  SESSION_SECRET: z.string().min(32, "Must contain at least 32 characters"),
 
   OPENROUTESERVICE_API_KEY: z.string().trim().min(1).optional(),
   NLR_API_KEY: z.string().trim().min(1).optional(),
