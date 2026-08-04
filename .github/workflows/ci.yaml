@@ -15,6 +15,7 @@ concurrency:
 
 env:
   SESSION_SECRET: chargewise_ci_only_session_secret_at_least_32_characters
+  REDIS_URL: redis://127.0.0.1:6379
 
 jobs:
   quality:
