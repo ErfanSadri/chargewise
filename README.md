@@ -59,6 +59,48 @@ Stop the containers without deleting their named volumes:
 docker compose down
 ```
 
+## Database setup
+
+If `.env` does not exist yet, copy the example file and keep the new file
+private:
+
+```bash
+cp .env.example .env
+```
+
+The development database uses `DATABASE_URL`. Database integration tests use
+`TEST_DATABASE_URL` and require the database name to be exactly
+`chargewise_test`.
+
+Create that disposable test database once:
+
+```bash
+docker compose exec postgres createdb -U chargewise chargewise_test
+```
+
+Apply the committed migrations to the development database:
+
+```bash
+pnpm --filter @chargewise/database db:migrate
+```
+
+Run the database integration tests against the test database:
+
+```bash
+pnpm --filter @chargewise/database test
+```
+
+When the schema changes, generate and check a new migration before applying it:
+
+```bash
+pnpm --filter @chargewise/database exec drizzle-kit generate --name=<short_name>
+pnpm --filter @chargewise/database db:check
+pnpm --filter @chargewise/database db:migrate
+```
+
+The test command refuses to run against the development database. Never point
+`TEST_DATABASE_URL` at development or production data.
+
 ## Source-of-truth documents
 
 1. [`docs/01-product-requirements.md`](docs/01-product-requirements.md)
