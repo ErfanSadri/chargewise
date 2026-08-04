@@ -13,6 +13,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SESSION_SECRET: chargewise_ci_only_session_secret_at_least_32_characters
+
 jobs:
   quality:
     name: Quality checks
