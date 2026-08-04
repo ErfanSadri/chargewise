@@ -38,6 +38,15 @@ Error response:
 }
 ```
 
+Every response includes an `X-Request-ID` header containing a server-generated
+identifier. The `requestId` in an error response matches that header so a client
+can report the identifier without receiving internal error details.
+
+JSON request bodies are limited to 100 KiB. Malformed JSON returns `400 Bad
+Request`, and a body over the limit returns `413 Payload Too Large`; both use the
+`VALIDATION_ERROR` envelope. Browser access is allowed only for the configured
+web origin through CORS response headers.
+
 Dates use ISO 8601. Distances are meters. Durations are seconds or explicitly
 named minutes. Currency values are serialized as decimal strings to avoid
 floating-point ambiguity.
@@ -288,8 +297,33 @@ ratios or averages.
 
 ### `GET /health`
 
-Returns process status and dependency readiness without exposing credentials or
-sensitive infrastructure details.
+This endpoint is public and accepts no request body or query parameters. It
+reports whether the API process is running and whether its required dependencies
+are ready. Responses include `Cache-Control: no-store` so clients do not reuse a
+stale readiness result.
+
+When the database and cache both respond, the API returns `200 OK`:
+
+```json
+{
+  "data": {
+    "process": "up",
+    "readiness": "ready",
+    "dependencies": {
+      "database": "up",
+      "cache": "up"
+    }
+  }
+}
+```
+
+When either dependency check fails, the API returns `503 Service Unavailable`
+using the same response shape. `readiness` becomes `not_ready`, and each failed
+dependency is reported as `down` while a responsive dependency remains `up`.
+
+The database check verifies PostgreSQL/PostGIS connectivity, and the cache check
+verifies Redis connectivity. Responses never include credentials, connection
+strings, hostnames, ports, stack traces, or raw dependency errors.
 
 ## 10. Contract implementation rule
 

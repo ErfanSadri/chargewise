@@ -30,6 +30,12 @@ been documented.
 - Vitest, Supertest, React Testing Library, and Playwright
 - Docker Compose and GitHub Actions
 
+## Local prerequisites
+
+- Node.js 22.22.0 or newer
+- pnpm 11
+- Docker with Docker Compose
+
 ## Local infrastructure
 
 Start PostgreSQL with PostGIS and Redis in the background:
