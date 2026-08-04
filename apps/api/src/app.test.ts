@@ -7,6 +7,40 @@ import type { DependencyCheck, HealthChecks } from "./health/health-service.js";
 import { errorHandler } from "./http/error-handlers.js";
 import { createHttpLogger, createLogger } from "./logging/logger.js";
 
+import type { PublicUser } from "@chargewise/shared";
+
+import type { AuthenticationResult, AuthenticationService } from "./auth/authentication-service.js";
+
+import type { AuthenticationRateLimiter } from "./auth/authentication-rate-limiter.js";
+
+const sessionToken = "a".repeat(43);
+
+const publicUser: PublicUser = {
+  id: "8c30cbb4-f724-4e72-a994-f1429f758c54",
+  email: "driver@example.com",
+  createdAt: "2026-08-04T12:00:00.000Z",
+  updatedAt: "2026-08-04T12:05:00.000Z",
+};
+
+const authenticationResult: AuthenticationResult = {
+  user: publicUser,
+  sessionToken,
+};
+
+const successfulAuthenticationService: AuthenticationService = {
+  register: async () => authenticationResult,
+  login: async () => authenticationResult,
+  authenticate: async () => publicUser,
+  logout: async () => undefined,
+};
+
+const successfulAuthenticationRateLimiter: AuthenticationRateLimiter = {
+  check: async () => ({
+    allowed: true,
+    remainingAttempts: 4,
+  }),
+};
+
 const webOrigin = "http://localhost:5173";
 const successfulCheck: DependencyCheck = () => Promise.resolve();
 const successfulHealthChecks: HealthChecks = {
@@ -16,6 +50,12 @@ const successfulHealthChecks: HealthChecks = {
 
 function createTestApp(healthChecks: HealthChecks = successfulHealthChecks) {
   return createApp({
+    authentication: {
+      service: successfulAuthenticationService,
+      rateLimiter: successfulAuthenticationRateLimiter,
+      isProduction: false,
+      webOrigin,
+    },
     healthChecks,
     logger: createLogger("test"),
     webOrigin,
@@ -44,6 +84,17 @@ describe("API middleware", () => {
     expect(response.headers["access-control-allow-credentials"]).toBe("true");
     expect(response.headers["access-control-expose-headers"]).toBe("X-Request-ID");
     expect(response.headers["x-powered-by"]).toBeUndefined();
+  });
+
+  it("mounts the authentication router", async () => {
+    const response = await request(createTestApp()).get("/api/v1/auth/me").expect(401);
+
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.body.error).toEqual({
+      code: "UNAUTHENTICATED",
+      message: "Authentication required",
+      details: [],
+    });
   });
 
   it("returns the standard error envelope for an unknown route", async () => {

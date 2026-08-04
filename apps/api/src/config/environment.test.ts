@@ -8,6 +8,7 @@ const validEnvironment = {
   WEB_ORIGIN: "http://localhost:5173",
   DATABASE_URL: "postgresql://test-user:test-password@localhost:5433/chargewise",
   REDIS_URL: "redis://localhost:6379",
+  SESSION_SECRET: "test-session-secret-that-is-at-least-32-characters",
 };
 
 describe("parseEnvironment", () => {
@@ -17,6 +18,23 @@ describe("parseEnvironment", () => {
       API_PORT: 3000,
       WEB_ORIGIN: "http://localhost:5173",
     });
+  });
+
+  it("requires a session secret", () => {
+    const { SESSION_SECRET: _, ...environmentWithoutSessionSecret } = validEnvironment;
+
+    expect(() => parseEnvironment(environmentWithoutSessionSecret)).toThrowError(
+      "Invalid environment configuration",
+    );
+  });
+
+  it("rejects a session secret shorter than 32 characters", () => {
+    expect(() =>
+      parseEnvironment({
+        ...validEnvironment,
+        SESSION_SECRET: "too-short",
+      }),
+    ).toThrowError("Invalid environment configuration");
   });
 
   it("reports an invalid database URL as a configuration error", () => {

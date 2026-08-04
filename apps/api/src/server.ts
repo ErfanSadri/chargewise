@@ -1,7 +1,14 @@
+import type { Server } from "node:http";
+
 import { createApp } from "./app.js";
+import { createSessionInfrastructure } from "./auth/session-infrastructure.js";
 import { loadLocalEnvironment, parseEnvironment } from "./config/environment.js";
 import { createInfrastructureHealthChecks } from "./health/infrastructure-health-checks.js";
 import { createLogger } from "./logging/logger.js";
+
+import { createAuthenticationDatabase } from "./auth/authentication-database.js";
+import { createAuthenticationService } from "./auth/authentication-service.js";
+import { argon2PasswordHasher } from "./auth/password-hasher.js";
 
 const shutdownTimeoutMilliseconds = 5_000;
 
@@ -9,6 +16,7 @@ loadLocalEnvironment();
 
 const environment = parseEnvironment();
 const logger = createLogger(environment.NODE_ENV);
+
 const infrastructureHealthChecks = createInfrastructureHealthChecks({
   databaseUrl: environment.DATABASE_URL,
   redisUrl: environment.REDIS_URL,
@@ -22,25 +30,51 @@ const infrastructureHealthChecks = createInfrastructureHealthChecks({
     );
   },
 });
+
+const sessionInfrastructure = createSessionInfrastructure({
+  redisUrl: environment.REDIS_URL,
+  sessionSecret: environment.SESSION_SECRET,
+  onBackgroundError: (error) => {
+    logger.warn(
+      {
+        errorType: error instanceof Error ? error.name : typeof error,
+      },
+      "Session Redis client error",
+    );
+  },
+});
+
+const authenticationDatabase = createAuthenticationDatabase(environment.DATABASE_URL);
+
+const authenticationService = createAuthenticationService({
+  users: authenticationDatabase.users,
+  sessions: sessionInfrastructure.repository,
+  passwordHasher: argon2PasswordHasher,
+  runUserTransaction: authenticationDatabase.runUserTransaction,
+});
+
 const app = createApp({
+  authentication: {
+    service: authenticationService,
+    rateLimiter: sessionInfrastructure.rateLimiter,
+    isProduction: environment.NODE_ENV === "production",
+    webOrigin: environment.WEB_ORIGIN,
+  },
   healthChecks: infrastructureHealthChecks.checks,
   logger,
   webOrigin: environment.WEB_ORIGIN,
 });
 
-const server = app.listen(environment.API_PORT, () => {
-  logger.info(
-    {
-      port: environment.API_PORT,
-    },
-    "ChargeWise API started",
-  );
-});
-
+let server: Server | undefined;
 let infrastructureClosePromise: Promise<void> | undefined;
 
 function closeInfrastructure(): Promise<void> {
-  infrastructureClosePromise ??= infrastructureHealthChecks.close();
+  infrastructureClosePromise ??= Promise.all([
+    sessionInfrastructure.close(),
+    authenticationDatabase.close(),
+    infrastructureHealthChecks.close(),
+  ]).then(() => undefined);
+
   return infrastructureClosePromise;
 }
 
@@ -51,6 +85,7 @@ async function handleServerError(error: Error): Promise<void> {
     },
     "ChargeWise API failed to start",
   );
+
   process.exitCode = 1;
 
   try {
@@ -65,13 +100,13 @@ async function handleServerError(error: Error): Promise<void> {
   }
 }
 
-server.on("error", (error: Error) => {
-  void handleServerError(error);
-});
-
-let isShuttingDown = false;
-
 async function closeHttpServer(): Promise<void> {
+  const activeServer = server;
+
+  if (activeServer === undefined) {
+    return;
+  }
+
   await new Promise<void>((resolve, reject) => {
     let hasSettled = false;
 
@@ -96,16 +131,20 @@ async function closeHttpServer(): Promise<void> {
         { timeoutMilliseconds: shutdownTimeoutMilliseconds },
         "ChargeWise API shutdown timed out; closing active connections",
       );
-      server.closeAllConnections();
+
+      activeServer.closeAllConnections();
       settle(new Error("HTTP server shutdown timed out"));
     }, shutdownTimeoutMilliseconds);
+
     timeout.unref();
 
-    server.close((error) => {
+    activeServer.close((error) => {
       settle(error);
     });
   });
 }
+
+let isShuttingDown = false;
 
 async function shutDown(signal: NodeJS.Signals): Promise<void> {
   if (isShuttingDown) {
@@ -113,8 +152,10 @@ async function shutDown(signal: NodeJS.Signals): Promise<void> {
   }
 
   isShuttingDown = true;
+
   process.off("SIGINT", handleSigint);
   process.off("SIGTERM", handleSigterm);
+
   logger.info({ signal }, "ChargeWise API shutting down");
 
   let shutdownFailed = false;
@@ -123,6 +164,7 @@ async function shutDown(signal: NodeJS.Signals): Promise<void> {
     await closeHttpServer();
   } catch (error: unknown) {
     shutdownFailed = true;
+
     logger.error(
       {
         errorType: error instanceof Error ? error.name : typeof error,
@@ -135,6 +177,7 @@ async function shutDown(signal: NodeJS.Signals): Promise<void> {
     await closeInfrastructure();
   } catch (error: unknown) {
     shutdownFailed = true;
+
     logger.error(
       {
         errorType: error instanceof Error ? error.name : typeof error,
@@ -161,3 +204,46 @@ function handleSigterm(): void {
 
 process.once("SIGINT", handleSigint);
 process.once("SIGTERM", handleSigterm);
+
+async function startServer(): Promise<void> {
+  try {
+    await sessionInfrastructure.connect();
+  } catch (error: unknown) {
+    logger.fatal(
+      {
+        errorType: error instanceof Error ? error.name : typeof error,
+      },
+      "ChargeWise session infrastructure failed to start",
+    );
+
+    process.exitCode = 1;
+
+    try {
+      await closeInfrastructure();
+    } catch (closeError: unknown) {
+      logger.error(
+        {
+          errorType: closeError instanceof Error ? closeError.name : typeof closeError,
+        },
+        "ChargeWise infrastructure cleanup failed",
+      );
+    }
+
+    return;
+  }
+
+  server = app.listen(environment.API_PORT, () => {
+    logger.info(
+      {
+        port: environment.API_PORT,
+      },
+      "ChargeWise API started",
+    );
+  });
+
+  server.on("error", (error: Error) => {
+    void handleServerError(error);
+  });
+}
+
+void startServer();

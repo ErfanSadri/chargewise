@@ -53,6 +53,63 @@ floating-point ambiguity.
 
 ## 2. Authentication
 
+Authentication uses a server-side session. The browser receives only an opaque
+session token; it never receives a password hash or a Redis session record.
+
+Authentication request objects reject unknown fields. Email addresses are
+trimmed, lowercased, validated as email addresses, and limited to 320
+characters before storage. Passwords must contain 12 through 128 characters.
+Passwords are passed to Argon2id exactly as submitted and are never trimmed,
+normalized, returned, or logged.
+
+The public user representation is:
+
+```json
+{
+  "data": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "email": "driver@example.com",
+    "createdAt": "2026-08-04T12:00:00.000Z",
+    "updatedAt": "2026-08-04T12:00:00.000Z"
+  }
+}
+```
+
+Authentication responses include `Cache-Control: no-store`.
+
+### Session behavior
+
+- The cookie name is `chargewise_session`.
+- The cookie uses `HttpOnly`, `SameSite=Lax`, and `Path=/`, with no `Domain`
+  attribute. It uses `Secure` in production.
+- A session has a fixed lifetime of seven days. Its cookie `Max-Age` and Redis
+  TTL represent the same lifetime. Reading the session does not extend it.
+- Each successful registration or login creates a fresh token from at least 32
+  cryptographically random bytes. If that browser already presented a session,
+  that session is revoked. Sessions on other devices remain valid.
+- The raw token exists only in the cookie. Redis keys use an HMAC-SHA-256 digest
+  derived with `SESSION_SECRET`; Redis stores only the user ID and session
+  creation time under an `auth:session:` namespace.
+- Authentication loads the Redis session and then the current PostgreSQL user.
+  A missing user invalidates the stale session.
+- Missing, malformed, expired, revoked, or user-orphaned sessions all return the
+  same generic `401 UNAUTHENTICATED` response.
+
+Registration and session creation are one operation from the client's point of
+view. If the session cannot be stored, registration does not return success or
+set a cookie, and the new database user is rolled back.
+
+In production, every state-changing authentication request must include an
+`Origin` header exactly matching `WEB_ORIGIN`. A missing or different origin
+returns `403 FORBIDDEN` before the handler can change state. Non-production
+requests may omit `Origin`, but a supplied origin must still match.
+
+Registration is limited to five attempts per 15 minutes per client IP. Login is
+limited to ten attempts per 15 minutes per client IP. These counters live in
+Redis. A blocked request returns `429 RATE_LIMITED` with `Retry-After`. A Redis
+or PostgreSQL failure returns `503 SERVICE_UNAVAILABLE` and never authenticates
+the request.
+
 ### `POST /auth/register`
 
 Request:
@@ -64,24 +121,39 @@ Request:
 }
 ```
 
-Response: `201 Created` with public user data and an authenticated session
-cookie.
+Response: `201 Created` with the public user representation and an authenticated
+session cookie.
 
-Errors: `400 VALIDATION_ERROR`, `409 CONFLICT`, `429 RATE_LIMITED`.
+Duplicate normalized email addresses return `409 CONFLICT`.
+
+Errors: `400 VALIDATION_ERROR`, `403 FORBIDDEN`, `409 CONFLICT`,
+`429 RATE_LIMITED`, `503 SERVICE_UNAVAILABLE`.
 
 ### `POST /auth/login`
 
-Request uses the same fields. Response: `200 OK` and a renewed authenticated
-session. Invalid credentials return a generic `401 UNAUTHENTICATED`.
+Request uses the same fields. Response: `200 OK` with the public user
+representation and a fresh authenticated session. A nonexistent email and an
+incorrect password return the same generic `401 UNAUTHENTICATED` response.
+
+Errors: `400 VALIDATION_ERROR`, `401 UNAUTHENTICATED`, `403 FORBIDDEN`,
+`429 RATE_LIMITED`, `503 SERVICE_UNAVAILABLE`.
 
 ### `POST /auth/logout`
 
-Invalidates the server session and clears the cookie. Response: `204 No
-Content`.
+Invalidates the server session and clears the cookie with the same cookie
+attributes used when setting it. Response: `204 No Content` with no body.
+Logout is idempotent: a missing, malformed, or expired cookie still clears the
+cookie and returns `204`. If a presented session cannot be invalidated because
+Redis is unavailable, the cookie is cleared and the response is
+`503 SERVICE_UNAVAILABLE`.
+
+Errors: `403 FORBIDDEN`, `503 SERVICE_UNAVAILABLE`.
 
 ### `GET /auth/me`
 
-Returns the current public user representation or `401 UNAUTHENTICATED`.
+Returns `200 OK` with the current public user representation.
+
+Errors: `401 UNAUTHENTICATED`, `503 SERVICE_UNAVAILABLE`.
 
 ## 3. Vehicles
 

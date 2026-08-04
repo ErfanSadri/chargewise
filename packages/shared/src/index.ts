@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./auth.js";
+
 export const healthProcessStatusSchema = z.literal("up");
 export const healthReadinessStatusSchema = z.enum(["ready", "not_ready"]);
 export const healthDependencyStatusSchema = z.enum(["up", "down"]);
