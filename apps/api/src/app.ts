@@ -3,6 +3,10 @@ import express from "express";
 import helmet from "helmet";
 
 import {
+  createAnalyticsRouter,
+  type AnalyticsRouterOptions,
+} from "./analytics/analytics-router.js";
+import {
   createAuthenticationRouter,
   type AuthenticationRouterOptions,
 } from "./auth/authentication-router.js";
@@ -22,6 +26,7 @@ import {
 import { createVehicleRouter, type VehicleRouterOptions } from "./vehicles/vehicle-router.js";
 
 export interface AppOptions {
+  analytics?: AnalyticsRouterOptions;
   authentication: AuthenticationRouterOptions;
   chargingSessions?: ChargingSessionRouterOptions;
   favorites?: FavoriteRouterOptions;
@@ -48,6 +53,10 @@ export function createApp(options: AppOptions) {
   app.use(express.json({ limit: "100kb" }));
 
   app.use("/api/v1/auth", createAuthenticationRouter(options.authentication));
+
+  if (options.analytics !== undefined) {
+    app.use("/api/v1/analytics", createAnalyticsRouter(options.analytics));
+  }
 
   if (options.chargingSessions !== undefined) {
     app.use("/api/v1/charging-sessions", createChargingSessionRouter(options.chargingSessions));
