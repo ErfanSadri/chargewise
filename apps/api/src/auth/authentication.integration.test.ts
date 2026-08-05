@@ -231,6 +231,26 @@ describe("authentication lifecycle integration", () => {
         isProduction: false,
         webOrigin,
       },
+      vehicles: {
+        service: {
+          list: async () => [],
+          get: async () => {
+            throw new Error("Vehicle service is not used by authentication integration tests");
+          },
+          create: async () => {
+            throw new Error("Vehicle service is not used by authentication integration tests");
+          },
+          update: async () => {
+            throw new Error("Vehicle service is not used by authentication integration tests");
+          },
+          delete: async () => {
+            throw new Error("Vehicle service is not used by authentication integration tests");
+          },
+        },
+        authenticationService,
+        isProduction: false,
+        webOrigin,
+      },
       healthChecks: {
         database: () => Promise.resolve(),
         cache: () => Promise.resolve(),
