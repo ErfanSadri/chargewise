@@ -160,10 +160,7 @@
         "stations_source_identity_unique": {
           "name": "stations_source_identity_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "source",
-            "source_station_id"
-          ]
+          "columns": ["source", "source_station_id"]
         }
       },
       "policies": {},
@@ -240,9 +237,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -388,12 +383,8 @@
           "name": "vehicles_user_id_users_id_fk",
           "tableFrom": "vehicles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
