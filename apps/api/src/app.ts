@@ -6,6 +6,10 @@ import {
   createAuthenticationRouter,
   type AuthenticationRouterOptions,
 } from "./auth/authentication-router.js";
+import {
+  createChargingSessionRouter,
+  type ChargingSessionRouterOptions,
+} from "./charging-sessions/charging-session-router.js";
 import { createFavoriteRouter, type FavoriteRouterOptions } from "./favorites/favorite-router.js";
 import { createHealthRouter } from "./health/health-router.js";
 import type { HealthChecks } from "./health/health-service.js";
@@ -19,6 +23,7 @@ import { createVehicleRouter, type VehicleRouterOptions } from "./vehicles/vehic
 
 export interface AppOptions {
   authentication: AuthenticationRouterOptions;
+  chargingSessions?: ChargingSessionRouterOptions;
   favorites?: FavoriteRouterOptions;
   routes: RouteSearchRouterOptions;
   vehicles: VehicleRouterOptions;
@@ -43,6 +48,10 @@ export function createApp(options: AppOptions) {
   app.use(express.json({ limit: "100kb" }));
 
   app.use("/api/v1/auth", createAuthenticationRouter(options.authentication));
+
+  if (options.chargingSessions !== undefined) {
+    app.use("/api/v1/charging-sessions", createChargingSessionRouter(options.chargingSessions));
+  }
 
   if (options.favorites !== undefined) {
     app.use("/api/v1/favorites", createFavoriteRouter(options.favorites));
