@@ -76,6 +76,15 @@ function getStatusLabel(sourceStatus: string): string {
   return sourceStatus.toLocaleUpperCase() === "E" ? "Operating" : sourceStatus;
 }
 
+function getChargingSessionHref(station: RouteStation): string {
+  const searchParameters = new URLSearchParams({
+    stationId: station.id,
+    stationName: station.name,
+  });
+
+  return `/sessions?${searchParameters.toString()}`;
+}
+
 function formatLastSyncedAt(lastSyncedAt: string): string {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -435,6 +444,10 @@ function StationDetails({
               ? "Remove from favorites"
               : "Add to favorites"}
         </button>
+
+        <a className="button button--secondary" href={getChargingSessionHref(station)}>
+          Log charging session
+        </a>
 
         {favoriteError !== null && (
           <p className="form-message form-message--error" role="alert">
