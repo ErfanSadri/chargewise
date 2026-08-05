@@ -1,6 +1,9 @@
 import type { RouteSearchResponse } from "@chargewise/shared";
 import { useMemo, useRef, useState } from "react";
 
+import { getApiErrorMessage } from "../api/api-client.ts";
+import { addFavorite, removeFavorite } from "../api/favorite-client.ts";
+
 import { RouteMap } from "./RouteMap.tsx";
 import {
   createDefaultRouteStationFilters,
@@ -338,10 +341,19 @@ function StationList({
 
 interface StationDetailsProps {
   station: RouteStation;
+  favoriteError: string | null;
+  isFavoriteUpdating: boolean;
   onClose: () => void;
+  onToggleFavorite: (station: RouteStation) => void;
 }
 
-function StationDetails({ station, onClose }: StationDetailsProps) {
+function StationDetails({
+  station,
+  favoriteError,
+  isFavoriteUpdating,
+  onClose,
+  onToggleFavorite,
+}: StationDetailsProps) {
   return (
     <section
       aria-label={`Station details for ${station.name}`}
@@ -404,6 +416,32 @@ function StationDetails({ station, onClose }: StationDetailsProps) {
           <dd>{formatLastSyncedAt(station.lastSyncedAt)}</dd>
         </div>
       </dl>
+
+      <div className="station-details__favorite-actions">
+        <button
+          aria-label={`${station.isFavorite ? "Remove" : "Add"} ${station.name} ${
+            station.isFavorite ? "from" : "to"
+          } favorites`}
+          className={station.isFavorite ? "button button--secondary" : "button button--primary"}
+          disabled={isFavoriteUpdating}
+          onClick={() => {
+            onToggleFavorite(station);
+          }}
+          type="button"
+        >
+          {isFavoriteUpdating
+            ? "Saving…"
+            : station.isFavorite
+              ? "Remove from favorites"
+              : "Add to favorites"}
+        </button>
+
+        {favoriteError !== null && (
+          <p className="form-message form-message--error" role="alert">
+            {favoriteError}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
@@ -411,12 +449,24 @@ function StationDetails({ station, onClose }: StationDetailsProps) {
 export function RouteResults({ response }: RouteResultsProps) {
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [filters, setFilters] = useState<RouteStationFilters>(createDefaultRouteStationFilters);
+  const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
+  const [favoriteRequestStationId, setFavoriteRequestStationId] = useState<string | null>(null);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   const { route, stations } = response.data;
 
+  const stationsWithFavoriteState = useMemo(
+    () =>
+      stations.map((station) => ({
+        ...station,
+        isFavorite: favoriteOverrides[station.id] ?? station.isFavorite,
+      })),
+    [favoriteOverrides, stations],
+  );
+
   const filteredStations = useMemo(
-    () => filterRouteStations(stations, filters),
-    [filters, stations],
+    () => filterRouteStations(stationsWithFavoriteState, filters),
+    [filters, stationsWithFavoriteState],
   );
 
   const effectiveSelectedStationId = filteredStations.some(
@@ -433,7 +483,7 @@ export function RouteResults({ response }: RouteResultsProps) {
   function handleFiltersChange(nextFilters: RouteStationFilters): void {
     if (
       selectedStationId !== null &&
-      !filterRouteStations(stations, nextFilters).some(
+      !filterRouteStations(stationsWithFavoriteState, nextFilters).some(
         (station) => station.id === selectedStationId,
       )
     ) {
@@ -445,6 +495,43 @@ export function RouteResults({ response }: RouteResultsProps) {
 
   function resetFilters(): void {
     handleFiltersChange(createDefaultRouteStationFilters());
+  }
+
+  async function toggleFavorite(station: RouteStation): Promise<void> {
+    const nextFavoriteState = !station.isFavorite;
+
+    setFavoriteError(null);
+    setFavoriteRequestStationId(station.id);
+    setFavoriteOverrides((current) => ({
+      ...current,
+      [station.id]: nextFavoriteState,
+    }));
+
+    try {
+      if (nextFavoriteState) {
+        const favorite = await addFavorite(station.id);
+
+        setFavoriteOverrides((current) => ({
+          ...current,
+          [station.id]: favorite.isFavorite,
+        }));
+      } else {
+        await removeFavorite(station.id);
+
+        setFavoriteOverrides((current) => ({
+          ...current,
+          [station.id]: false,
+        }));
+      }
+    } catch (error: unknown) {
+      setFavoriteOverrides((current) => ({
+        ...current,
+        [station.id]: station.isFavorite,
+      }));
+      setFavoriteError(getApiErrorMessage(error, "ChargeWise could not update this favorite."));
+    } finally {
+      setFavoriteRequestStationId(null);
+    }
   }
 
   return (
@@ -486,13 +573,16 @@ export function RouteResults({ response }: RouteResultsProps) {
       <StationFilterControls
         filters={filters}
         onFiltersChange={handleFiltersChange}
-        stations={stations}
+        stations={stationsWithFavoriteState}
         visibleCount={filteredStations.length}
       />
 
       <div className="route-result__explorer">
         <RouteMap
-          onStationSelect={setSelectedStationId}
+          onStationSelect={(stationId) => {
+            setSelectedStationId(stationId);
+            setFavoriteError(null);
+          }}
           route={route}
           selectedStationId={effectiveSelectedStationId}
           stations={filteredStations}
@@ -500,7 +590,10 @@ export function RouteResults({ response }: RouteResultsProps) {
 
         <StationList
           onResetFilters={resetFilters}
-          onStationSelect={setSelectedStationId}
+          onStationSelect={(stationId) => {
+            setSelectedStationId(stationId);
+            setFavoriteError(null);
+          }}
           selectedStationId={effectiveSelectedStationId}
           stations={filteredStations}
         />
@@ -508,8 +601,14 @@ export function RouteResults({ response }: RouteResultsProps) {
 
       {selectedStation !== undefined && (
         <StationDetails
+          favoriteError={favoriteError}
+          isFavoriteUpdating={favoriteRequestStationId === selectedStation.id}
           onClose={() => {
             setSelectedStationId(null);
+            setFavoriteError(null);
+          }}
+          onToggleFavorite={(station) => {
+            void toggleFavorite(station);
           }}
           station={selectedStation}
         />
