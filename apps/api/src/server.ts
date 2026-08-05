@@ -1,15 +1,21 @@
 import type { Server } from "node:http";
 
 import { createApp } from "./app.js";
+import { createAuthenticationDatabase } from "./auth/authentication-database.js";
+import { createAuthenticationService } from "./auth/authentication-service.js";
+import { argon2PasswordHasher } from "./auth/password-hasher.js";
 import { createSessionInfrastructure } from "./auth/session-infrastructure.js";
 import { loadLocalEnvironment, parseEnvironment } from "./config/environment.js";
 import { createInfrastructureHealthChecks } from "./health/infrastructure-health-checks.js";
 import { createLogger } from "./logging/logger.js";
-
-import { createAuthenticationDatabase } from "./auth/authentication-database.js";
-import { createAuthenticationService } from "./auth/authentication-service.js";
-import { argon2PasswordHasher } from "./auth/password-hasher.js";
-
+import {
+  NlrStationProvider,
+  OpenRouteServiceGeocodingProvider,
+  OpenRouteServiceRoutingProvider,
+} from "./providers/index.js";
+import { createRouteSearchCacheInfrastructure } from "./routes/route-search-cache-infrastructure.js";
+import { createRouteSearchDatabase } from "./routes/route-search-database.js";
+import { createRouteSearchService } from "./routes/route-search-service.js";
 import { createVehicleDatabase } from "./vehicles/vehicle-database.js";
 import { createVehicleService } from "./vehicles/vehicle-service.js";
 
@@ -19,6 +25,20 @@ loadLocalEnvironment();
 
 const environment = parseEnvironment();
 const logger = createLogger(environment.NODE_ENV);
+
+function requireProviderCredential(value: string | undefined, environmentName: string): string {
+  if (value === undefined || value.trim().length === 0) {
+    throw new Error(`${environmentName} is required to start route search`);
+  }
+
+  return value.trim();
+}
+
+const openRouteServiceApiKey = requireProviderCredential(
+  environment.OPENROUTESERVICE_API_KEY,
+  "OPENROUTESERVICE_API_KEY",
+);
+const nlrApiKey = requireProviderCredential(environment.NLR_API_KEY, "NLR_API_KEY");
 
 const infrastructureHealthChecks = createInfrastructureHealthChecks({
   databaseUrl: environment.DATABASE_URL,
@@ -47,6 +67,19 @@ const sessionInfrastructure = createSessionInfrastructure({
   },
 });
 
+const routeSearchCacheInfrastructure = createRouteSearchCacheInfrastructure({
+  redisUrl: environment.REDIS_URL,
+  ttlSeconds: environment.ROUTE_SEARCH_CACHE_TTL_SECONDS,
+  onBackgroundError: (error) => {
+    logger.warn(
+      {
+        errorType: error instanceof Error ? error.name : typeof error,
+      },
+      "Route-search Redis client error",
+    );
+  },
+});
+
 const authenticationDatabase = createAuthenticationDatabase(environment.DATABASE_URL);
 
 const authenticationService = createAuthenticationService({
@@ -63,6 +96,26 @@ const vehicleService = createVehicleService({
   runVehicleTransaction: vehicleDatabase.runVehicleTransaction,
 });
 
+const routeSearchDatabase = createRouteSearchDatabase(environment.DATABASE_URL);
+
+const routeSearchService = createRouteSearchService({
+  vehicles: vehicleDatabase.vehicles,
+  geocodingProvider: new OpenRouteServiceGeocodingProvider(openRouteServiceApiKey),
+  routingProvider: new OpenRouteServiceRoutingProvider(openRouteServiceApiKey),
+  stationProvider: new NlrStationProvider(nlrApiKey),
+  stationRepository: routeSearchDatabase.stations,
+  cache: routeSearchCacheInfrastructure.cache,
+  onCacheError: (operation, error) => {
+    logger.warn(
+      {
+        operation,
+        errorType: error instanceof Error ? error.name : typeof error,
+      },
+      "Route-search cache operation failed",
+    );
+  },
+});
+
 const app = createApp({
   authentication: {
     service: authenticationService,
@@ -70,10 +123,15 @@ const app = createApp({
     isProduction: environment.NODE_ENV === "production",
     webOrigin: environment.WEB_ORIGIN,
   },
+  routes: {
+    service: routeSearchService,
+    authenticationService,
+    isProduction: environment.NODE_ENV === "production",
+    webOrigin: environment.WEB_ORIGIN,
+  },
   healthChecks: infrastructureHealthChecks.checks,
   logger,
   webOrigin: environment.WEB_ORIGIN,
-
   vehicles: {
     service: vehicleService,
     authenticationService,
@@ -88,8 +146,10 @@ let infrastructureClosePromise: Promise<void> | undefined;
 function closeInfrastructure(): Promise<void> {
   infrastructureClosePromise ??= Promise.all([
     sessionInfrastructure.close(),
+    routeSearchCacheInfrastructure.close(),
     authenticationDatabase.close(),
     vehicleDatabase.close(),
+    routeSearchDatabase.close(),
     infrastructureHealthChecks.close(),
   ]).then(() => undefined);
 

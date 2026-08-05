@@ -10,10 +10,15 @@ import { createHealthRouter } from "./health/health-router.js";
 import type { HealthChecks } from "./health/health-service.js";
 import { errorHandler, notFoundHandler } from "./http/error-handlers.js";
 import { createHttpLogger, type AppLogger } from "./logging/logger.js";
+import {
+  createRouteSearchRouter,
+  type RouteSearchRouterOptions,
+} from "./routes/route-search-router.js";
 import { createVehicleRouter, type VehicleRouterOptions } from "./vehicles/vehicle-router.js";
 
 export interface AppOptions {
   authentication: AuthenticationRouterOptions;
+  routes: RouteSearchRouterOptions;
   vehicles: VehicleRouterOptions;
   healthChecks: HealthChecks;
   logger: AppLogger;
@@ -36,6 +41,7 @@ export function createApp(options: AppOptions) {
   app.use(express.json({ limit: "100kb" }));
 
   app.use("/api/v1/auth", createAuthenticationRouter(options.authentication));
+  app.use("/api/v1/routes", createRouteSearchRouter(options.routes));
   app.use("/api/v1/vehicles", createVehicleRouter(options.vehicles));
   app.use("/api/v1/health", createHealthRouter(options.healthChecks));
 

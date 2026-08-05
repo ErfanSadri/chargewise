@@ -3,4 +3,4 @@ export {
   type ChargeWiseDatabase,
   type DatabaseConnection,
 } from "./client.js";
-export { users, vehicles } from "./schema/index.js";
+export { stations, users, vehicles } from "./schema/index.js";
