@@ -7,7 +7,9 @@ import type { DependencyCheck, HealthChecks } from "./health/health-service.js";
 import { errorHandler } from "./http/error-handlers.js";
 import { createHttpLogger, createLogger } from "./logging/logger.js";
 
-import type { PublicUser } from "@chargewise/shared";
+import type { PublicUser, PublicVehicle } from "@chargewise/shared";
+
+import type { VehicleService } from "./vehicles/vehicle-service.js";
 
 import type { AuthenticationResult, AuthenticationService } from "./auth/authentication-service.js";
 
@@ -20,6 +22,29 @@ const publicUser: PublicUser = {
   email: "driver@example.com",
   createdAt: "2026-08-04T12:00:00.000Z",
   updatedAt: "2026-08-04T12:05:00.000Z",
+};
+
+const publicVehicle: PublicVehicle = {
+  id: "6f719184-e691-4c73-bf4f-4e353c40cd99",
+  nickname: "My i5",
+  make: "BMW",
+  model: "i5 eDrive40",
+  year: 2025,
+  batteryCapacityKwh: "81.20",
+  efficiencyMiPerKwh: "3.10",
+  connectorTypes: ["CCS", "J1772"],
+  preferredNetworks: ["Electrify America"],
+  isDefault: true,
+  createdAt: "2026-08-04T12:00:00.000Z",
+  updatedAt: "2026-08-04T12:05:00.000Z",
+};
+
+const successfulVehicleService: VehicleService = {
+  list: async () => [publicVehicle],
+  get: async () => publicVehicle,
+  create: async () => publicVehicle,
+  update: async () => publicVehicle,
+  delete: async () => undefined,
 };
 
 const authenticationResult: AuthenticationResult = {
@@ -59,6 +84,13 @@ function createTestApp(healthChecks: HealthChecks = successfulHealthChecks) {
     healthChecks,
     logger: createLogger("test"),
     webOrigin,
+
+    vehicles: {
+      service: successfulVehicleService,
+      authenticationService: successfulAuthenticationService,
+      isProduction: false,
+      webOrigin,
+    },
   });
 }
 
@@ -97,53 +129,64 @@ describe("API middleware", () => {
     });
   });
 
-  it("returns the standard error envelope for an unknown route", async () => {
-    const response = await request(createTestApp()).get("/missing").expect(404);
-    const requestId = expectRequestId(response);
+  it("mounts the authenticated vehicle router", async () => {
+    const response = await request(createTestApp()).get("/api/v1/vehicles").expect(401);
 
-    expect(response.body).toEqual({
-      error: {
-        code: "NOT_FOUND",
-        message: "Route not found",
-        details: [],
-      },
-      requestId,
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.body.error).toEqual({
+      code: "UNAUTHENTICATED",
+      message: "Authentication required",
+      details: [],
     });
   });
+});
 
-  it("returns a safe validation error for malformed JSON", async () => {
-    const response = await request(createTestApp())
-      .post("/missing")
-      .set("Content-Type", "application/json")
-      .send('{"incomplete":')
-      .expect(400);
-    const requestId = expectRequestId(response);
+it("returns the standard error envelope for an unknown route", async () => {
+  const response = await request(createTestApp()).get("/missing").expect(404);
+  const requestId = expectRequestId(response);
 
-    expect(response.body).toEqual({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Request body is not valid JSON",
-        details: [],
-      },
-      requestId,
-    });
+  expect(response.body).toEqual({
+    error: {
+      code: "NOT_FOUND",
+      message: "Route not found",
+      details: [],
+    },
+    requestId,
   });
+});
 
-  it("rejects a JSON body over 100 KiB", async () => {
-    const response = await request(createTestApp())
-      .post("/missing")
-      .send({ value: "x".repeat(101 * 1_024) })
-      .expect(413);
-    const requestId = expectRequestId(response);
+it("returns a safe validation error for malformed JSON", async () => {
+  const response = await request(createTestApp())
+    .post("/missing")
+    .set("Content-Type", "application/json")
+    .send('{"incomplete":')
+    .expect(400);
+  const requestId = expectRequestId(response);
 
-    expect(response.body).toEqual({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Request body is too large",
-        details: [],
-      },
-      requestId,
-    });
+  expect(response.body).toEqual({
+    error: {
+      code: "VALIDATION_ERROR",
+      message: "Request body is not valid JSON",
+      details: [],
+    },
+    requestId,
+  });
+});
+
+it("rejects a JSON body over 100 KiB", async () => {
+  const response = await request(createTestApp())
+    .post("/missing")
+    .send({ value: "x".repeat(101 * 1_024) })
+    .expect(413);
+  const requestId = expectRequestId(response);
+
+  expect(response.body).toEqual({
+    error: {
+      code: "VALIDATION_ERROR",
+      message: "Request body is too large",
+      details: [],
+    },
+    requestId,
   });
 });
 

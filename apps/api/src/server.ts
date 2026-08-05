@@ -10,6 +10,9 @@ import { createAuthenticationDatabase } from "./auth/authentication-database.js"
 import { createAuthenticationService } from "./auth/authentication-service.js";
 import { argon2PasswordHasher } from "./auth/password-hasher.js";
 
+import { createVehicleDatabase } from "./vehicles/vehicle-database.js";
+import { createVehicleService } from "./vehicles/vehicle-service.js";
+
 const shutdownTimeoutMilliseconds = 5_000;
 
 loadLocalEnvironment();
@@ -53,6 +56,13 @@ const authenticationService = createAuthenticationService({
   runUserTransaction: authenticationDatabase.runUserTransaction,
 });
 
+const vehicleDatabase = createVehicleDatabase(environment.DATABASE_URL);
+
+const vehicleService = createVehicleService({
+  vehicles: vehicleDatabase.vehicles,
+  runVehicleTransaction: vehicleDatabase.runVehicleTransaction,
+});
+
 const app = createApp({
   authentication: {
     service: authenticationService,
@@ -63,6 +73,13 @@ const app = createApp({
   healthChecks: infrastructureHealthChecks.checks,
   logger,
   webOrigin: environment.WEB_ORIGIN,
+
+  vehicles: {
+    service: vehicleService,
+    authenticationService,
+    isProduction: environment.NODE_ENV === "production",
+    webOrigin: environment.WEB_ORIGIN,
+  },
 });
 
 let server: Server | undefined;
@@ -72,6 +89,7 @@ function closeInfrastructure(): Promise<void> {
   infrastructureClosePromise ??= Promise.all([
     sessionInfrastructure.close(),
     authenticationDatabase.close(),
+    vehicleDatabase.close(),
     infrastructureHealthChecks.close(),
   ]).then(() => undefined);
 

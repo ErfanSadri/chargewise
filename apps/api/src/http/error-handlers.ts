@@ -66,6 +66,14 @@ export function sendForbiddenError(request: Request, response: Response): void {
   });
 }
 
+export function sendNotFoundError(request: Request, response: Response): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 404,
+    code: "NOT_FOUND",
+    message: "Resource not found",
+  });
+}
+
 export function sendConflictError(request: Request, response: Response): void {
   sendError(response, getRequestId(request), {
     statusCode: 409,
