@@ -1,12 +1,17 @@
 import type { RouteSearchResponse } from "@chargewise/shared";
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { RouteMap } from "./RouteMap.tsx";
+import {
+  createDefaultRouteStationFilters,
+  filterRouteStations,
+  getRouteStationFilterOptions,
+  type RouteStation,
+  type RouteStationFilters,
+} from "./route-station-filters.ts";
 import "./RouteResults.css";
 
 const metersPerMile = 1609.344;
-
-type RouteStation = RouteSearchResponse["data"]["stations"][number];
 
 export interface RouteResultsProps {
   response: RouteSearchResponse;
@@ -30,6 +35,10 @@ function formatDuration(durationSeconds: number): string {
 
 function getStationCountLabel(stationCount: number): string {
   return `${stationCount} ${stationCount === 1 ? "station" : "stations"} found`;
+}
+
+function getVisibleStationCountLabel(visibleCount: number, totalCount: number): string {
+  return `Showing ${visibleCount} of ${totalCount} ${totalCount === 1 ? "station" : "stations"}`;
 }
 
 function getStationNetwork(station: RouteStation): string {
@@ -56,29 +65,214 @@ function getPortLabel(station: RouteStation): string {
   return labels.length === 0 ? "Port count unavailable" : labels.join(" · ");
 }
 
+function getAccessLabel(accessCode: string): string {
+  return accessCode.toLocaleLowerCase() === "public" ? "Public access" : accessCode;
+}
+
+function getStatusLabel(sourceStatus: string): string {
+  return sourceStatus.toLocaleUpperCase() === "E" ? "Operating" : sourceStatus;
+}
+
+function formatLastSyncedAt(lastSyncedAt: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(lastSyncedAt));
+}
+
+interface StationFilterControlsProps {
+  filters: RouteStationFilters;
+  stations: readonly RouteStation[];
+  visibleCount: number;
+  onFiltersChange: (filters: RouteStationFilters) => void;
+}
+
+function StationFilterControls({
+  filters,
+  stations,
+  visibleCount,
+  onFiltersChange,
+}: StationFilterControlsProps) {
+  const options = useMemo(() => getRouteStationFilterOptions(stations), [stations]);
+
+  function updateFilters(update: Partial<RouteStationFilters>): void {
+    onFiltersChange({
+      ...filters,
+      ...update,
+    });
+  }
+
+  return (
+    <section aria-labelledby="station-filter-heading" className="station-filters">
+      <div className="station-filters__heading">
+        <div>
+          <p className="eyebrow">Refine results</p>
+          <h3 id="station-filter-heading">Station filters</h3>
+        </div>
+
+        <p aria-live="polite">{getVisibleStationCountLabel(visibleCount, stations.length)}</p>
+      </div>
+
+      <div className="station-filters__grid">
+        <div className="form-field station-filters__search">
+          <label htmlFor="station-filter-query">Name, network, or connector</label>
+          <input
+            id="station-filter-query"
+            onChange={(event) => {
+              updateFilters({
+                query: event.currentTarget.value,
+              });
+            }}
+            placeholder="Search stations"
+            type="search"
+            value={filters.query}
+          />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="station-filter-network">Network</label>
+          <select
+            id="station-filter-network"
+            onChange={(event) => {
+              updateFilters({
+                network: event.currentTarget.value,
+              });
+            }}
+            value={filters.network}
+          >
+            <option value="ALL">All networks</option>
+            {options.networks.map((network) => (
+              <option key={network} value={network}>
+                {network}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="station-filter-connector">Connector</label>
+          <select
+            id="station-filter-connector"
+            onChange={(event) => {
+              updateFilters({
+                connector: event.currentTarget.value as RouteStationFilters["connector"],
+              });
+            }}
+            value={filters.connector}
+          >
+            <option value="ALL">All connectors</option>
+            {options.connectors.map((connector) => (
+              <option key={connector} value={connector}>
+                {connector}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="station-filter-level">Charging level</label>
+          <select
+            id="station-filter-level"
+            onChange={(event) => {
+              updateFilters({
+                chargingLevel: event.currentTarget.value as RouteStationFilters["chargingLevel"],
+              });
+            }}
+            value={filters.chargingLevel}
+          >
+            <option value="ALL">All charging levels</option>
+            <option value="DC_FAST">DC fast charging</option>
+            <option value="LEVEL_2">Level 2 charging</option>
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="station-filter-compatibility">Compatibility</label>
+          <select
+            id="station-filter-compatibility"
+            onChange={(event) => {
+              updateFilters({
+                compatibility: event.currentTarget.value as RouteStationFilters["compatibility"],
+              });
+            }}
+            value={filters.compatibility}
+          >
+            <option value="ALL">All stations</option>
+            <option value="COMPATIBLE">Compatible only</option>
+            <option value="INCOMPATIBLE">Not compatible only</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="station-filters__footer">
+        <div className="station-filters__toggles">
+          <label className="checkbox-option">
+            <input
+              checked={filters.publicOnly}
+              onChange={(event) => {
+                updateFilters({
+                  publicOnly: event.currentTarget.checked,
+                });
+              }}
+              type="checkbox"
+            />
+            <span>Public access only</span>
+          </label>
+
+          <label className="checkbox-option">
+            <input
+              checked={filters.operatingOnly}
+              onChange={(event) => {
+                updateFilters({
+                  operatingOnly: event.currentTarget.checked,
+                });
+              }}
+              type="checkbox"
+            />
+            <span>Operating only</span>
+          </label>
+        </div>
+
+        <button
+          className="button button--secondary"
+          onClick={() => {
+            onFiltersChange(createDefaultRouteStationFilters());
+          }}
+          type="button"
+        >
+          Reset filters
+        </button>
+      </div>
+    </section>
+  );
+}
+
 interface StationListProps {
   stations: readonly RouteStation[];
   selectedStationId: string | null;
   onStationSelect: (stationId: string) => void;
+  onResetFilters: () => void;
 }
 
-function StationList({ stations, selectedStationId, onStationSelect }: StationListProps) {
+function StationList({
+  stations,
+  selectedStationId,
+  onStationSelect,
+  onResetFilters,
+}: StationListProps) {
   const selectedCardRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    selectedCardRef.current?.scrollIntoView?.({
-      block: "nearest",
-    });
-  }, [selectedStationId]);
 
   if (stations.length === 0) {
     return (
       <section aria-labelledby="station-list-heading" className="station-list station-list--empty">
-        <h3 id="station-list-heading">No matching stations</h3>
+        <h3 id="station-list-heading">No stations match these filters</h3>
         <p>
-          The route is available, but no charging stations matched the current corridor and
-          preferences.
+          The original route results are still available. Reset the presentation filters to show
+          them again.
         </p>
+        <button className="button button--secondary" onClick={onResetFilters} type="button">
+          Reset filters
+        </button>
       </section>
     );
   }
@@ -100,6 +294,8 @@ function StationList({ stations, selectedStationId, onStationSelect }: StationLi
           return (
             <li key={station.id}>
               <button
+                aria-controls={isSelected ? "selected-station-details" : undefined}
+                aria-expanded={isSelected}
                 aria-label={`Select ${station.name}`}
                 aria-pressed={isSelected}
                 className={isSelected ? "station-card station-card--selected" : "station-card"}
@@ -140,13 +336,116 @@ function StationList({ stations, selectedStationId, onStationSelect }: StationLi
   );
 }
 
+interface StationDetailsProps {
+  station: RouteStation;
+  onClose: () => void;
+}
+
+function StationDetails({ station, onClose }: StationDetailsProps) {
+  return (
+    <section
+      aria-label={`Station details for ${station.name}`}
+      aria-live="polite"
+      className="station-details"
+      id="selected-station-details"
+    >
+      <div className="station-details__heading">
+        <div>
+          <p className="eyebrow">Selected station</p>
+          <h3>{station.name}</h3>
+          <p>{getStationNetwork(station)}</p>
+        </div>
+
+        <button
+          aria-label="Close station details"
+          className="button button--secondary"
+          onClick={onClose}
+          type="button"
+        >
+          Close
+        </button>
+      </div>
+
+      <dl className="station-details__grid">
+        <div>
+          <dt>Compatibility</dt>
+          <dd>
+            {station.compatible
+              ? "Compatible with selected vehicle"
+              : "Not compatible with selected vehicle"}
+          </dd>
+        </div>
+        <div>
+          <dt>Connectors</dt>
+          <dd>{getConnectorLabel(station)}</dd>
+        </div>
+        <div>
+          <dt>Charging ports</dt>
+          <dd>{getPortLabel(station)}</dd>
+        </div>
+        <div>
+          <dt>Distance from route</dt>
+          <dd>{formatDistance(station.distanceFromRouteMeters)}</dd>
+        </div>
+        <div>
+          <dt>Access</dt>
+          <dd>{getAccessLabel(station.accessCode)}</dd>
+        </div>
+        <div>
+          <dt>Provider status</dt>
+          <dd>{getStatusLabel(station.sourceStatus)}</dd>
+        </div>
+        <div>
+          <dt>Favorite</dt>
+          <dd>{station.isFavorite ? "Saved to favorites" : "Not saved"}</dd>
+        </div>
+        <div>
+          <dt>Station data synced</dt>
+          <dd>{formatLastSyncedAt(station.lastSyncedAt)}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 export function RouteResults({ response }: RouteResultsProps) {
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<RouteStationFilters>(createDefaultRouteStationFilters);
+
   const { route, stations } = response.data;
 
-  const effectiveSelectedStationId = stations.some((station) => station.id === selectedStationId)
+  const filteredStations = useMemo(
+    () => filterRouteStations(stations, filters),
+    [filters, stations],
+  );
+
+  const effectiveSelectedStationId = filteredStations.some(
+    (station) => station.id === selectedStationId,
+  )
     ? selectedStationId
     : null;
+
+  const selectedStation =
+    effectiveSelectedStationId === null
+      ? undefined
+      : filteredStations.find((station) => station.id === effectiveSelectedStationId);
+
+  function handleFiltersChange(nextFilters: RouteStationFilters): void {
+    if (
+      selectedStationId !== null &&
+      !filterRouteStations(stations, nextFilters).some(
+        (station) => station.id === selectedStationId,
+      )
+    ) {
+      setSelectedStationId(null);
+    }
+
+    setFilters(nextFilters);
+  }
+
+  function resetFilters(): void {
+    handleFiltersChange(createDefaultRouteStationFilters());
+  }
 
   return (
     <section aria-labelledby="route-result-heading" aria-live="polite" className="route-result">
@@ -184,20 +483,37 @@ export function RouteResults({ response }: RouteResultsProps) {
         </dl>
       </div>
 
+      <StationFilterControls
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        stations={stations}
+        visibleCount={filteredStations.length}
+      />
+
       <div className="route-result__explorer">
         <RouteMap
           onStationSelect={setSelectedStationId}
           route={route}
           selectedStationId={effectiveSelectedStationId}
-          stations={stations}
+          stations={filteredStations}
         />
 
         <StationList
+          onResetFilters={resetFilters}
           onStationSelect={setSelectedStationId}
-          selectedStationId={selectedStationId}
-          stations={stations}
+          selectedStationId={effectiveSelectedStationId}
+          stations={filteredStations}
         />
       </div>
+
+      {selectedStation !== undefined && (
+        <StationDetails
+          onClose={() => {
+            setSelectedStationId(null);
+          }}
+          station={selectedStation}
+        />
+      )}
     </section>
   );
 }
