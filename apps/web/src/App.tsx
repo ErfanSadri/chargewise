@@ -46,9 +46,17 @@ function App() {
           </NavLink>
 
           {user !== null && user !== undefined && (
-            <NavLink className={({ isActive }) => getNavigationClassName(isActive)} to="/vehicles">
-              Vehicles
-            </NavLink>
+            <>
+              <NavLink className={({ isActive }) => getNavigationClassName(isActive)} to="/routes">
+                Plan route
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => getNavigationClassName(isActive)}
+                to="/vehicles"
+              >
+                Vehicles
+              </NavLink>
+            </>
           )}
 
           {import.meta.env.DEV && (
