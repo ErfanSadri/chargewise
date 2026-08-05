@@ -6,7 +6,6 @@ import { AuthenticationPage } from "./pages/AuthenticationPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { RouteErrorPage } from "./pages/RouteErrorPage.tsx";
-import { RouteSearchPage } from "./pages/RouteSearchPage.tsx";
 import { VehiclesPage } from "./pages/VehiclesPage.tsx";
 
 const developmentRoutes: RouteObject[] = import.meta.env.DEV
@@ -45,7 +44,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "routes",
-            element: <RouteSearchPage />,
+            lazy: async () => {
+              const { RouteSearchPage } = await import("./pages/RouteSearchPage.tsx");
+
+              return { Component: RouteSearchPage };
+            },
           },
           {
             path: "vehicles",

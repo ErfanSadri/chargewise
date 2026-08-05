@@ -10,6 +10,32 @@ import { searchRoute } from "../api/route-client.ts";
 import { listVehicles } from "../api/vehicle-client.ts";
 import { RouteSearchPage } from "./RouteSearchPage.tsx";
 
+interface MockRouteMapProps {
+  stations: RouteSearchResponse["data"]["stations"];
+  selectedStationId: string | null;
+  onStationSelect: (stationId: string) => void;
+}
+
+vi.mock("../components/RouteMap.tsx", () => ({
+  RouteMap: ({ stations, selectedStationId, onStationSelect }: MockRouteMapProps) => (
+    <section aria-label="Interactive route map">
+      <span data-testid="selected-map-station">{selectedStationId ?? "none"}</span>
+
+      {stations.map((station) => (
+        <button
+          key={station.id}
+          onClick={() => {
+            onStationSelect(station.id);
+          }}
+          type="button"
+        >
+          Map marker {station.name}
+        </button>
+      ))}
+    </section>
+  ),
+}));
+
 vi.mock("../api/route-client.ts", () => ({
   searchRoute: vi.fn(),
 }));
@@ -34,6 +60,40 @@ const vehicle: PublicVehicle = {
   updatedAt: "2026-08-04T12:00:00.000Z",
 };
 
+const firstStation = {
+  id: "ecba119c-963d-4931-acb8-1320791258be",
+  name: "Westfield Fast Charging",
+  network: "Electrify America",
+  longitude: -118.605,
+  latitude: 34.19,
+  distanceFromRouteMeters: 1200,
+  connectorCodes: ["CCS"],
+  compatible: true,
+  level2PortCount: 0,
+  dcFastPortCount: 8,
+  accessCode: "public",
+  sourceStatus: "E",
+  lastSyncedAt: "2026-08-02T20:00:00.000Z",
+  isFavorite: false,
+} satisfies RouteSearchResponse["data"]["stations"][number];
+
+const secondStation = {
+  id: "cb559763-3d59-474d-a7da-c2fd7ad5dbcc",
+  name: "Campus Charging Hub",
+  network: "EVgo",
+  longitude: -117.232,
+  latitude: 32.88,
+  distanceFromRouteMeters: 650,
+  connectorCodes: ["CCS", "CHADEMO"],
+  compatible: true,
+  level2PortCount: 4,
+  dcFastPortCount: 6,
+  accessCode: "public",
+  sourceStatus: "E",
+  lastSyncedAt: "2026-08-02T20:00:00.000Z",
+  isFavorite: false,
+} satisfies RouteSearchResponse["data"]["stations"][number];
+
 const routeResponse: RouteSearchResponse = {
   data: {
     route: {
@@ -57,29 +117,12 @@ const routeResponse: RouteSearchResponse = {
         latitude: 32.877207,
       },
     },
-    stations: [
-      {
-        id: "ecba119c-963d-4931-acb8-1320791258be",
-        name: "Westfield Fast Charging",
-        network: "Electrify America",
-        longitude: -118.605,
-        latitude: 34.19,
-        distanceFromRouteMeters: 1200,
-        connectorCodes: ["CCS"],
-        compatible: true,
-        level2PortCount: 0,
-        dcFastPortCount: 8,
-        accessCode: "public",
-        sourceStatus: "E",
-        lastSyncedAt: "2026-08-02T20:00:00.000Z",
-        isFavorite: false,
-      },
-    ],
+    stations: [firstStation, secondStation],
   },
   meta: {
     stationSource: "NLR_AFDC",
     routeSource: "OPENROUTESERVICE",
-    stationCount: 1,
+    stationCount: 2,
   },
 };
 
@@ -106,26 +149,29 @@ function renderPage(): QueryClient {
   return queryClient;
 }
 
+async function submitValidSearch(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(await screen.findByLabelText("Origin"), "Woodland Hills, CA");
+  await user.type(screen.getByLabelText("Destination"), "UC San Diego, La Jolla, CA");
+  await user.click(
+    screen.getByRole("button", {
+      name: "Search route",
+    }),
+  );
+}
+
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 describe("route-search UI", () => {
-  it("submits the default vehicle and renders the route summary", async () => {
+  it("submits the default vehicle and renders the route explorer", async () => {
     vi.mocked(listVehicles).mockResolvedValue([vehicle]);
     vi.mocked(searchRoute).mockResolvedValue(routeResponse);
 
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(await screen.findByLabelText("Origin"), "Woodland Hills, CA");
-    await user.type(screen.getByLabelText("Destination"), "UC San Diego, La Jolla, CA");
-
-    await user.click(
-      screen.getByRole("button", {
-        name: "Search route",
-      }),
-    );
+    await submitValidSearch(user);
 
     await waitFor(() => {
       expect(searchRoute).toHaveBeenCalledWith({
@@ -150,7 +196,49 @@ describe("route-search UI", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("136.4 mi")).toBeInTheDocument();
     expect(screen.getByText("2 hr 29 min")).toBeInTheDocument();
-    expect(screen.getByText("1 station found")).toBeInTheDocument();
+    expect(screen.getByText("2 stations found")).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", {
+        name: "Interactive route map",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Stations along this route",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps station-list and map-marker selection synchronized", async () => {
+    vi.mocked(listVehicles).mockResolvedValue([vehicle]);
+    vi.mocked(searchRoute).mockResolvedValue(routeResponse);
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await submitValidSearch(user);
+
+    const secondStationCard = await screen.findByRole("button", {
+      name: `Select ${secondStation.name}`,
+    });
+
+    await user.click(secondStationCard);
+
+    expect(secondStationCard).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("selected-map-station")).toHaveTextContent(secondStation.id);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: `Map marker ${firstStation.name}`,
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: `Select ${firstStation.name}`,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(secondStationCard).toHaveAttribute("aria-pressed", "false");
   });
 
   it("rejects an incomplete form before calling the API", async () => {
