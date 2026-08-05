@@ -97,3 +97,66 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+e2e:
+  name: Critical browser journeys
+  needs: quality
+  runs-on: ubuntu-latest
+  timeout-minutes: 20
+
+  services:
+    postgres:
+      image: postgis/postgis:18-3.6-alpine
+      env:
+        POSTGRES_DB: chargewise_e2e
+        POSTGRES_USER: chargewise
+        POSTGRES_PASSWORD: chargewise_ci
+      ports:
+        - 5432:5432
+      options: >-
+        --health-cmd "pg_isready -U chargewise -d chargewise_e2e"
+        --health-interval 5s
+        --health-timeout 5s
+        --health-retries 10
+
+    redis:
+      image: redis:8.6.5-alpine
+      ports:
+        - 6379:6379
+      options: >-
+        --health-cmd "redis-cli ping"
+        --health-interval 5s
+        --health-timeout 5s
+        --health-retries 10
+
+  env:
+    E2E_DATABASE_URL: postgresql://chargewise:chargewise_ci@127.0.0.1:5432/chargewise_e2e
+    E2E_REDIS_URL: redis://127.0.0.1:6379/15
+
+  steps:
+    - name: Check out repository
+      uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+
+    - name: Install pnpm
+      uses: pnpm/setup@v1
+      with:
+        version: "11.18.0"
+        install: false
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: "24"
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Chromium
+      run: pnpm exec playwright install --with-deps chromium
+
+    - name: Run critical browser journeys
+      run: pnpm e2e

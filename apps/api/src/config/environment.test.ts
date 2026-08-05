@@ -114,4 +114,25 @@ describe("parseEnvironment", () => {
       }),
     ).toThrowError("Invalid environment configuration");
   });
+  it("accepts deterministic fixture providers outside production", () => {
+    expect(
+      parseEnvironment({
+        ...validEnvironment,
+        ROUTE_PROVIDER_MODE: "fixture",
+      }).ROUTE_PROVIDER_MODE,
+    ).toBe("fixture");
+  });
+
+  it("rejects fixture providers in production", () => {
+    expect(() =>
+      parseEnvironment({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        WEB_ORIGIN: "https://chargewise.example",
+        REDIS_URL: "rediss://cache.example:6380",
+        TRUST_PROXY_HOPS: "1",
+        ROUTE_PROVIDER_MODE: "fixture",
+      }),
+    ).toThrowError("Invalid environment configuration");
+  });
 });

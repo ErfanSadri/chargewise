@@ -15,6 +15,7 @@ import { createFavoriteService } from "./favorites/favorite-service.js";
 import { createInfrastructureHealthChecks } from "./health/infrastructure-health-checks.js";
 import { createLogger } from "./logging/logger.js";
 import {
+  createFixtureRouteProviders,
   NlrStationProvider,
   OpenRouteServiceGeocodingProvider,
   OpenRouteServiceRoutingProvider,
@@ -40,11 +41,26 @@ function requireProviderCredential(value: string | undefined, environmentName: s
   return value.trim();
 }
 
-const openRouteServiceApiKey = requireProviderCredential(
-  environment.OPENROUTESERVICE_API_KEY,
-  "OPENROUTESERVICE_API_KEY",
-);
-const nlrApiKey = requireProviderCredential(environment.NLR_API_KEY, "NLR_API_KEY");
+const routeProviders =
+  environment.ROUTE_PROVIDER_MODE === "fixture"
+    ? createFixtureRouteProviders()
+    : {
+        geocodingProvider: new OpenRouteServiceGeocodingProvider(
+          requireProviderCredential(
+            environment.OPENROUTESERVICE_API_KEY,
+            "OPENROUTESERVICE_API_KEY",
+          ),
+        ),
+        routingProvider: new OpenRouteServiceRoutingProvider(
+          requireProviderCredential(
+            environment.OPENROUTESERVICE_API_KEY,
+            "OPENROUTESERVICE_API_KEY",
+          ),
+        ),
+        stationProvider: new NlrStationProvider(
+          requireProviderCredential(environment.NLR_API_KEY, "NLR_API_KEY"),
+        ),
+      };
 
 const infrastructureHealthChecks = createInfrastructureHealthChecks({
   databaseUrl: environment.DATABASE_URL,
@@ -125,9 +141,9 @@ const routeSearchDatabase = createRouteSearchDatabase(environment.DATABASE_URL);
 
 const routeSearchService = createRouteSearchService({
   vehicles: vehicleDatabase.vehicles,
-  geocodingProvider: new OpenRouteServiceGeocodingProvider(openRouteServiceApiKey),
-  routingProvider: new OpenRouteServiceRoutingProvider(openRouteServiceApiKey),
-  stationProvider: new NlrStationProvider(nlrApiKey),
+  geocodingProvider: routeProviders.geocodingProvider,
+  routingProvider: routeProviders.routingProvider,
+  stationProvider: routeProviders.stationProvider,
   stationRepository: routeSearchDatabase.stations,
   favorites: favoriteDatabase.favorites,
   cache: routeSearchCacheInfrastructure.cache,

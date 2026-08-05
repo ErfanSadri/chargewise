@@ -15,7 +15,10 @@
     "check": "pnpm security:secrets && pnpm format:check && pnpm lint && pnpm typecheck && pnpm db:check && pnpm test && pnpm build",
     "security:secrets": "node scripts/check-tracked-secrets.mjs",
     "security:audit": "pnpm audit --prod --audit-level high",
-    "security:check": "pnpm security:secrets && pnpm security:audit"
+    "security:check": "pnpm security:secrets && pnpm security:audit",
+    "e2e:prepare": "pnpm --filter @chargewise/api exec tsx scripts/prepare-e2e.ts",
+    "e2e": "pnpm e2e:prepare && playwright test",
+    "e2e:headed": "pnpm e2e:prepare && playwright test --headed"
   },
   "author": "Erfan Sadri",
   "engines": {
@@ -31,6 +34,7 @@
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
