@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: chargewise
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    preDeployCommand: node dist/deployment/migrate.js
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WEB_DIST_PATH
+        value: /app/web
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: ROUTE_PROVIDER_MODE
+        value: live
+      - key: ROUTE_SEARCH_CACHE_TTL_SECONDS
+        value: "900"
+      - key: DATABASE_URL
+        sync: false
+      - key: MIGRATION_DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: OPENROUTESERVICE_API_KEY
+        sync: false
+      - key: NLR_API_KEY
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true

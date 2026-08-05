@@ -11,12 +11,36 @@ const validEnvironment = {
   SESSION_SECRET: "test-session-secret-that-is-at-least-32-characters",
 };
 
+const validProductionEnvironment = {
+  ...validEnvironment,
+  NODE_ENV: "production",
+  WEB_ORIGIN: "https://chargewise.example",
+  WEB_DIST_PATH: "/app/web",
+  REDIS_URL: "rediss://cache.example:6380",
+  TRUST_PROXY_HOPS: "1",
+};
+
 describe("parseEnvironment", () => {
   it("accepts valid local configuration", () => {
     expect(parseEnvironment(validEnvironment)).toMatchObject({
       NODE_ENV: "test",
       API_PORT: 3000,
       WEB_ORIGIN: "http://localhost:5173",
+    });
+  });
+
+  it("accepts Render platform port and origin fallbacks", () => {
+    expect(
+      parseEnvironment({
+        ...validProductionEnvironment,
+        API_PORT: undefined,
+        WEB_ORIGIN: undefined,
+        PORT: "10000",
+        RENDER_EXTERNAL_URL: "https://chargewise.onrender.com",
+      }),
+    ).toMatchObject({
+      API_PORT: 10000,
+      WEB_ORIGIN: "https://chargewise.onrender.com",
     });
   });
 
@@ -66,15 +90,7 @@ describe("parseEnvironment", () => {
     ).toThrowError("Invalid environment configuration");
   });
   it("accepts explicit secure production transport and proxy configuration", () => {
-    expect(
-      parseEnvironment({
-        ...validEnvironment,
-        NODE_ENV: "production",
-        WEB_ORIGIN: "https://chargewise.example",
-        REDIS_URL: "rediss://cache.example:6380",
-        TRUST_PROXY_HOPS: "1",
-      }),
-    ).toMatchObject({
+    expect(parseEnvironment(validProductionEnvironment)).toMatchObject({
       NODE_ENV: "production",
       WEB_ORIGIN: "https://chargewise.example",
       REDIS_URL: "rediss://cache.example:6380",
@@ -85,10 +101,8 @@ describe("parseEnvironment", () => {
   it("rejects an insecure production web origin", () => {
     expect(() =>
       parseEnvironment({
-        ...validEnvironment,
-        NODE_ENV: "production",
-        REDIS_URL: "rediss://cache.example:6380",
-        TRUST_PROXY_HOPS: "1",
+        ...validProductionEnvironment,
+        WEB_ORIGIN: validEnvironment.WEB_ORIGIN,
       }),
     ).toThrowError("Invalid environment configuration");
   });
@@ -96,10 +110,8 @@ describe("parseEnvironment", () => {
   it("rejects non-TLS Redis in production", () => {
     expect(() =>
       parseEnvironment({
-        ...validEnvironment,
-        NODE_ENV: "production",
-        WEB_ORIGIN: "https://chargewise.example",
-        TRUST_PROXY_HOPS: "1",
+        ...validProductionEnvironment,
+        REDIS_URL: validEnvironment.REDIS_URL,
       }),
     ).toThrowError("Invalid environment configuration");
   });
@@ -107,13 +119,20 @@ describe("parseEnvironment", () => {
   it("requires an explicit trusted proxy hop count in production", () => {
     expect(() =>
       parseEnvironment({
-        ...validEnvironment,
-        NODE_ENV: "production",
-        WEB_ORIGIN: "https://chargewise.example",
-        REDIS_URL: "rediss://cache.example:6380",
+        ...validProductionEnvironment,
+        TRUST_PROXY_HOPS: "0",
       }),
     ).toThrowError("Invalid environment configuration");
   });
+  it("requires the production web distribution path", () => {
+    expect(() =>
+      parseEnvironment({
+        ...validProductionEnvironment,
+        WEB_DIST_PATH: undefined,
+      }),
+    ).toThrowError("Invalid environment configuration");
+  });
+
   it("accepts deterministic fixture providers outside production", () => {
     expect(
       parseEnvironment({
@@ -126,11 +145,7 @@ describe("parseEnvironment", () => {
   it("rejects fixture providers in production", () => {
     expect(() =>
       parseEnvironment({
-        ...validEnvironment,
-        NODE_ENV: "production",
-        WEB_ORIGIN: "https://chargewise.example",
-        REDIS_URL: "rediss://cache.example:6380",
-        TRUST_PROXY_HOPS: "1",
+        ...validProductionEnvironment,
         ROUTE_PROVIDER_MODE: "fixture",
       }),
     ).toThrowError("Invalid environment configuration");

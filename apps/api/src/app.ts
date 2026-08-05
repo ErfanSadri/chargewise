@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -35,6 +37,7 @@ export interface AppOptions {
   healthChecks: HealthChecks;
   logger: AppLogger;
   trustProxyHops?: number;
+  webDistPath?: string;
   webOrigin: string;
 }
 
@@ -48,7 +51,15 @@ export function createApp(options: AppOptions) {
 
   app.disable("x-powered-by");
   app.use(createHttpLogger(options.logger));
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org"],
+        },
+      },
+    }),
+  );
   app.use(
     cors({
       origin: options.webOrigin,
@@ -74,6 +85,39 @@ export function createApp(options: AppOptions) {
   app.use("/api/v1/routes", createRouteSearchRouter(options.routes));
   app.use("/api/v1/vehicles", createVehicleRouter(options.vehicles));
   app.use("/api/v1/health", createHealthRouter(options.healthChecks));
+
+  if (options.webDistPath !== undefined) {
+    const webAssetsPath = resolve(options.webDistPath, "assets");
+
+    app.use(
+      "/assets",
+      express.static(webAssetsPath, {
+        immutable: true,
+        index: false,
+        maxAge: "1y",
+      }),
+    );
+    app.use(
+      express.static(options.webDistPath, {
+        index: false,
+        maxAge: 0,
+      }),
+    );
+
+    app.get(/^(?!\/api(?:\/|$)).*/u, (request, response, next) => {
+      if (request.accepts("html") === false) {
+        next();
+        return;
+      }
+
+      response.set("Cache-Control", "no-store");
+      response.sendFile("index.html", { root: options.webDistPath }, (error) => {
+        if (error !== undefined && error !== null) {
+          next(error);
+        }
+      });
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);
