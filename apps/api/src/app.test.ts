@@ -9,6 +9,7 @@ import { createHttpLogger, createLogger } from "./logging/logger.js";
 
 import type { PublicUser, PublicVehicle } from "@chargewise/shared";
 
+import type { RouteSearchService } from "./routes/route-search-service.js";
 import type { VehicleService } from "./vehicles/vehicle-service.js";
 
 import type { AuthenticationResult, AuthenticationService } from "./auth/authentication-service.js";
@@ -45,6 +46,12 @@ const successfulVehicleService: VehicleService = {
   create: async () => publicVehicle,
   update: async () => publicVehicle,
   delete: async () => undefined,
+};
+
+const successfulRouteSearchService: RouteSearchService = {
+  search: async () => {
+    throw new Error("Route service should not run in the app mounting test");
+  },
 };
 
 const authenticationResult: AuthenticationResult = {
@@ -84,6 +91,13 @@ function createTestApp(healthChecks: HealthChecks = successfulHealthChecks) {
     healthChecks,
     logger: createLogger("test"),
     webOrigin,
+
+    routes: {
+      service: successfulRouteSearchService,
+      authenticationService: successfulAuthenticationService,
+      isProduction: false,
+      webOrigin,
+    },
 
     vehicles: {
       service: successfulVehicleService,
@@ -131,6 +145,17 @@ describe("API middleware", () => {
 
   it("mounts the authenticated vehicle router", async () => {
     const response = await request(createTestApp()).get("/api/v1/vehicles").expect(401);
+
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.body.error).toEqual({
+      code: "UNAUTHENTICATED",
+      message: "Authentication required",
+      details: [],
+    });
+  });
+
+  it("mounts the authenticated route-search router", async () => {
+    const response = await request(createTestApp()).post("/api/v1/routes/search").expect(401);
 
     expect(response.headers["cache-control"]).toBe("no-store");
     expect(response.body.error).toEqual({

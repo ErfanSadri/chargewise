@@ -231,6 +231,16 @@ describe("authentication lifecycle integration", () => {
         isProduction: false,
         webOrigin,
       },
+      routes: {
+        service: {
+          search: async () => {
+            throw new Error("Route search should not run in authentication integration tests");
+          },
+        },
+        authenticationService,
+        isProduction: false,
+        webOrigin,
+      },
       vehicles: {
         service: {
           list: async () => [],

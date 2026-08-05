@@ -5,8 +5,10 @@ type ApiErrorCode =
   | "UNAUTHENTICATED"
   | "FORBIDDEN"
   | "NOT_FOUND"
+  | "LOCATION_NOT_RESOLVED"
   | "CONFLICT"
   | "RATE_LIMITED"
+  | "PROVIDER_UNAVAILABLE"
   | "SERVICE_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
@@ -20,7 +22,7 @@ interface ErrorResponseBody {
 }
 
 interface PublicError {
-  statusCode: 400 | 401 | 403 | 404 | 409 | 413 | 429 | 500 | 503;
+  statusCode: 400 | 401 | 403 | 404 | 409 | 413 | 422 | 429 | 500 | 503;
   code: ApiErrorCode;
   message: string;
 }
@@ -79,6 +81,26 @@ export function sendConflictError(request: Request, response: Response): void {
     statusCode: 409,
     code: "CONFLICT",
     message: "An account with this email already exists",
+  });
+}
+
+export function sendLocationNotResolvedError(
+  request: Request,
+  response: Response,
+  location: "origin" | "destination",
+): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 422,
+    code: "LOCATION_NOT_RESOLVED",
+    message: `${location === "origin" ? "Origin" : "Destination"} location could not be resolved`,
+  });
+}
+
+export function sendProviderUnavailableError(request: Request, response: Response): void {
+  sendError(response, getRequestId(request), {
+    statusCode: 503,
+    code: "PROVIDER_UNAVAILABLE",
+    message: "Route provider temporarily unavailable",
   });
 }
 

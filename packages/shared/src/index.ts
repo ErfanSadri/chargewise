@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export * from "./auth.js";
+export * from "./route.js";
 export * from "./vehicle.js";
 
 export const healthProcessStatusSchema = z.literal("up");
