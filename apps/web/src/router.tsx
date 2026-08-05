@@ -62,6 +62,14 @@ export const router = createBrowserRouter([
               return { Component: ChargingSessionsPage };
             },
           },
+          {
+            path: "dashboard",
+            lazy: async () => {
+              const { AnalyticsDashboardPage } = await import("./pages/AnalyticsDashboardPage.tsx");
+
+              return { Component: AnalyticsDashboardPage };
+            },
+          },
         ],
       },
       ...developmentRoutes,
