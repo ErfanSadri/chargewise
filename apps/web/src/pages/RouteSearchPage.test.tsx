@@ -257,6 +257,8 @@ describe("route-search UI", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Review the origin, destination, vehicle, corridor, and search preferences.",
     );
+    expect(screen.getByLabelText("Origin")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Origin")).toHaveFocus();
   });
 
   it("shows a location-resolution error from the server", async () => {

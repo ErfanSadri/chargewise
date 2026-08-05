@@ -34,11 +34,17 @@ export interface AppOptions {
   vehicles: VehicleRouterOptions;
   healthChecks: HealthChecks;
   logger: AppLogger;
+  trustProxyHops?: number;
   webOrigin: string;
 }
 
 export function createApp(options: AppOptions) {
   const app = express();
+  const trustProxyHops = options.trustProxyHops ?? 0;
+
+  if (trustProxyHops > 0) {
+    app.set("trust proxy", trustProxyHops);
+  }
 
   app.disable("x-powered-by");
   app.use(createHttpLogger(options.logger));

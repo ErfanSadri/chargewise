@@ -75,19 +75,54 @@ const webOriginSchema = z
     }
   });
 
-const environmentSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+const environmentSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
-  API_PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
-  WEB_ORIGIN: webOriginSchema,
-  DATABASE_URL: databaseUrlSchema,
-  REDIS_URL: redisUrlSchema,
-  ROUTE_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(900),
-  SESSION_SECRET: z.string().min(32, "Must contain at least 32 characters"),
+    API_PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
+    WEB_ORIGIN: webOriginSchema,
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+    DATABASE_URL: databaseUrlSchema,
+    REDIS_URL: redisUrlSchema,
+    ROUTE_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+    SESSION_SECRET: z.string().min(32, "Must contain at least 32 characters"),
 
-  OPENROUTESERVICE_API_KEY: z.string().trim().min(1).optional(),
-  NLR_API_KEY: z.string().trim().min(1).optional(),
-});
+    OPENROUTESERVICE_API_KEY: z.string().trim().min(1).optional(),
+    NLR_API_KEY: z.string().trim().min(1).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.NODE_ENV !== "production") {
+      return;
+    }
+
+    const webOrigin = parseUrl(value.WEB_ORIGIN);
+
+    if (webOrigin?.protocol !== "https:") {
+      context.addIssue({
+        code: "custom",
+        path: ["WEB_ORIGIN"],
+        message: "Must use HTTPS in production",
+      });
+    }
+
+    const redisUrl = parseUrl(value.REDIS_URL);
+
+    if (redisUrl?.protocol !== "rediss:") {
+      context.addIssue({
+        code: "custom",
+        path: ["REDIS_URL"],
+        message: "Must use TLS Redis in production",
+      });
+    }
+
+    if (value.TRUST_PROXY_HOPS < 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["TRUST_PROXY_HOPS"],
+        message: "Must trust at least one explicitly configured proxy hop in production",
+      });
+    }
+  });
 
 export type ApiEnvironment = z.infer<typeof environmentSchema>;
 

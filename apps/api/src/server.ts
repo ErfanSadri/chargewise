@@ -173,6 +173,7 @@ const app = createApp({
   },
   healthChecks: infrastructureHealthChecks.checks,
   logger,
+  trustProxyHops: environment.TRUST_PROXY_HOPS,
   webOrigin: environment.WEB_ORIGIN,
   vehicles: {
     service: vehicleService,

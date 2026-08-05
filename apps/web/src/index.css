@@ -56,9 +56,9 @@ a {
   color: inherit;
 }
 
-a:focus-visible {
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 3px solid var(--color-brand);
-  outline-offset: 4px;
+  outline-offset: 3px;
   border-radius: 4px;
 }
 
@@ -69,4 +69,15 @@ a:focus-visible {
 
 #root {
   min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
