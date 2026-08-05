@@ -9,6 +9,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { getApiErrorMessage, isUnauthenticatedError } from "../api/api-client.ts";
+import { analyticsQueryKey } from "../api/analytics-client.ts";
 import {
   chargingSessionsQueryKey,
   createChargingSession,
@@ -112,9 +113,14 @@ export function ChargingSessionsPage() {
     onSuccess: async () => {
       setIsCreating(false);
 
-      await queryClient.invalidateQueries({
-        queryKey: chargingSessionsQueryKey,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: chargingSessionsQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: analyticsQueryKey,
+        }),
+      ]);
     },
   });
 
@@ -124,9 +130,14 @@ export function ChargingSessionsPage() {
     onSuccess: async () => {
       setEditingSessionId(null);
 
-      await queryClient.invalidateQueries({
-        queryKey: chargingSessionsQueryKey,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: chargingSessionsQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: analyticsQueryKey,
+        }),
+      ]);
     },
   });
 
@@ -137,9 +148,14 @@ export function ChargingSessionsPage() {
         setEditingSessionId(null);
       }
 
-      await queryClient.invalidateQueries({
-        queryKey: chargingSessionsQueryKey,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: chargingSessionsQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: analyticsQueryKey,
+        }),
+      ]);
     },
   });
 

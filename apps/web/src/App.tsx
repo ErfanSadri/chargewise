@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 import "./App.css";
 import { authenticationQueryKey, logoutUser } from "./api/auth-client.ts";
 import { getApiErrorMessage } from "./api/api-client.ts";
+import { analyticsQueryKey } from "./api/analytics-client.ts";
 import { chargingSessionsQueryKey } from "./api/charging-session-client.ts";
 import { favoritesQueryKey } from "./api/favorite-client.ts";
 import { vehiclesQueryKey } from "./api/vehicle-client.ts";
@@ -31,6 +32,9 @@ function App() {
       });
       queryClient.removeQueries({
         queryKey: chargingSessionsQueryKey,
+      });
+      queryClient.removeQueries({
+        queryKey: analyticsQueryKey,
       });
 
       navigate("/login", {
@@ -69,6 +73,12 @@ function App() {
                 to="/sessions"
               >
                 Charging history
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => getNavigationClassName(isActive)}
+                to="/dashboard"
+              >
+                Dashboard
               </NavLink>
             </>
           )}
