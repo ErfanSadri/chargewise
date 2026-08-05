@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { performance } from "node:perf_hooks";
 
 import type { VehicleConnectorType } from "@chargewise/shared";
 import { z } from "zod";
@@ -122,6 +123,15 @@ export interface RouteSearchService {
   search: (input: RouteSearchInput) => Promise<RouteSearchResult>;
 }
 
+export type RouteSearchCacheStatus = "hit" | "miss";
+
+export interface RouteSearchPerformanceMeasurement {
+  cacheStatus: RouteSearchCacheStatus;
+  durationMs: number;
+  discoveredStationCount: number;
+  returnedStationCount: number;
+}
+
 export interface RouteSearchServiceOptions {
   vehicles: Pick<VehicleRepository, "findByIdForUser">;
   geocodingProvider: GeocodingProvider;
@@ -130,7 +140,9 @@ export interface RouteSearchServiceOptions {
   stationRepository: RouteSearchStationRepository;
   favorites?: RouteSearchFavoriteRepository;
   cache: RouteSearchCache;
+  now?: () => number;
   onCacheError?: (operation: "read" | "write", error: unknown) => void;
+  onPerformance?: (measurement: RouteSearchPerformanceMeasurement) => void;
 }
 
 export class InvalidRouteSearchInputError extends TypeError {
@@ -189,8 +201,11 @@ export function createRouteSearchCacheKey(
 }
 
 export function createRouteSearchService(options: RouteSearchServiceOptions): RouteSearchService {
+  const now = options.now ?? (() => performance.now());
+
   return {
     async search(untrustedInput) {
+      const startedAt = now();
       const parsedInput = routeSearchInputSchema.safeParse(untrustedInput);
 
       if (!parsedInput.success) {
@@ -211,8 +226,10 @@ export function createRouteSearchService(options: RouteSearchServiceOptions): Ro
 
       const cacheKey = createRouteSearchCacheKey(input);
       let discovery = await readDiscoveryFromCache(options, cacheKey);
+      let cacheStatus: RouteSearchCacheStatus = "hit";
 
       if (discovery === null) {
+        cacheStatus = "miss";
         discovery = await discoverRoute(options, input);
         await writeDiscoveryToCache(options, cacheKey, discovery);
       }
@@ -238,7 +255,7 @@ export function createRouteSearchService(options: RouteSearchServiceOptions): Ro
         .filter((station) => matchesFilters(station, input.filters))
         .sort(compareStations);
 
-      return {
+      const result: RouteSearchResult = {
         route: {
           geometry: discovery.route.geometry,
           distanceMeters: discovery.route.distanceMeters,
@@ -253,6 +270,15 @@ export function createRouteSearchService(options: RouteSearchServiceOptions): Ro
           stationCount: stations.length,
         },
       };
+
+      reportPerformance(options, {
+        cacheStatus,
+        durationMs: Math.max(0, now() - startedAt),
+        discoveredStationCount: discovery.stations.length,
+        returnedStationCount: stations.length,
+      });
+
+      return result;
     },
   };
 }
@@ -350,6 +376,17 @@ function reportCacheError(
     options.onCacheError?.(operation, error);
   } catch {
     // Cache observability must never turn an optional optimization into a failure.
+  }
+}
+
+function reportPerformance(
+  options: RouteSearchServiceOptions,
+  measurement: RouteSearchPerformanceMeasurement,
+): void {
+  try {
+    options.onPerformance?.(measurement);
+  } catch {
+    // Performance observability must never turn a successful search into a failure.
   }
 }
 
