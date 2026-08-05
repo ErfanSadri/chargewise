@@ -6,6 +6,7 @@ import { AuthenticationPage } from "./pages/AuthenticationPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { RouteErrorPage } from "./pages/RouteErrorPage.tsx";
+import { RouteSearchPage } from "./pages/RouteSearchPage.tsx";
 import { VehiclesPage } from "./pages/VehiclesPage.tsx";
 
 const developmentRoutes: RouteObject[] = import.meta.env.DEV
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuthentication />,
         children: [
+          {
+            path: "routes",
+            element: <RouteSearchPage />,
+          },
           {
             path: "vehicles",
             element: <VehiclesPage />,
