@@ -70,6 +70,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check tracked secret boundaries
+        run: pnpm security:secrets
+
+      - name: Audit production dependencies
+        run: pnpm security:audit
+
       - name: Check formatting
         run: pnpm format:check
 

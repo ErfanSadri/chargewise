@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { authenticationQueryKey, loginUser, registerUser } from "../api/auth-client.ts";
 import { getApiErrorMessage } from "../api/api-client.ts";
 import { vehiclesQueryKey } from "../api/vehicle-client.ts";
+import { focusFirstInvalidFormControl, getInvalidFieldNames } from "../forms/form-accessibility.ts";
 
 import "./AuthenticationPage.css";
 
@@ -31,6 +32,7 @@ export function AuthenticationPage({ mode }: AuthenticationPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [invalidFields, setInvalidFields] = useState<ReadonlySet<string>>(new Set());
 
   const isLogin = mode === "login";
 
@@ -53,10 +55,14 @@ export function AuthenticationPage({ mode }: AuthenticationPageProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+
+    const form = event.currentTarget;
+
     setValidationMessage(null);
+    setInvalidFields(new Set());
     authenticationMutation.reset();
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
 
     const validation = authenticationCredentialsSchema.safeParse({
       email: String(formData.get("email") ?? ""),
@@ -64,9 +70,13 @@ export function AuthenticationPage({ mode }: AuthenticationPageProps) {
     });
 
     if (!validation.success) {
+      const invalidFieldNames = getInvalidFieldNames(validation.error.issues);
+
+      setInvalidFields(invalidFieldNames);
       setValidationMessage(
         validation.error.issues[0]?.message ?? "Please review your email and password.",
       );
+      focusFirstInvalidFormControl(form, invalidFieldNames);
       return;
     }
 
@@ -101,6 +111,8 @@ export function AuthenticationPage({ mode }: AuthenticationPageProps) {
         <div className="form-field">
           <label htmlFor={`${mode}-email`}>Email address</label>
           <input
+            aria-invalid={invalidFields.has("email")}
+            aria-describedby={invalidFields.has("email") ? "authentication-form-error" : undefined}
             autoComplete="email"
             id={`${mode}-email`}
             maxLength={320}
@@ -113,6 +125,7 @@ export function AuthenticationPage({ mode }: AuthenticationPageProps) {
         <div className="form-field">
           <label htmlFor={`${mode}-password`}>Password</label>
           <input
+            aria-invalid={invalidFields.has("password")}
             aria-describedby={`${mode}-password-hint`}
             autoComplete={isLogin ? "current-password" : "new-password"}
             id={`${mode}-password`}
@@ -128,7 +141,11 @@ export function AuthenticationPage({ mode }: AuthenticationPageProps) {
         </div>
 
         {message !== null && (
-          <p className="form-message form-message--error" role="alert">
+          <p
+            className="form-message form-message--error"
+            id="authentication-form-error"
+            role="alert"
+          >
             {message}
           </p>
         )}

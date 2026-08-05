@@ -6,6 +6,8 @@ import {
 } from "@chargewise/shared";
 import { useState, type FormEvent } from "react";
 
+import { focusFirstInvalidFormControl, getInvalidFieldNames } from "../forms/form-accessibility.ts";
+
 const connectorOptions: readonly VehicleConnectorType[] = ["CCS", "NACS", "J1772", "CHADEMO"];
 
 export interface VehicleFormProps {
@@ -39,12 +41,17 @@ export function VehicleForm({
   onSubmit,
 }: VehicleFormProps) {
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [invalidFields, setInvalidFields] = useState<ReadonlySet<string>>(new Set());
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    setValidationMessage(null);
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+
+    setValidationMessage(null);
+    setInvalidFields(new Set());
+
+    const formData = new FormData(form);
 
     const validation = createVehicleRequestSchema.safeParse({
       nickname: String(formData.get("nickname") ?? ""),
@@ -59,9 +66,13 @@ export function VehicleForm({
     });
 
     if (!validation.success) {
+      const invalidFieldNames = getInvalidFieldNames(validation.error.issues);
+
+      setInvalidFields(invalidFieldNames);
       setValidationMessage(
         validation.error.issues[0]?.message ?? "Please review the vehicle information.",
       );
+      focusFirstInvalidFormControl(form, invalidFieldNames);
       return;
     }
 
@@ -76,6 +87,8 @@ export function VehicleForm({
         <div className="form-field">
           <label htmlFor="vehicle-nickname">Nickname</label>
           <input
+            aria-invalid={invalidFields.has("nickname")}
+            aria-describedby={invalidFields.has("nickname") ? "vehicle-form-error" : undefined}
             defaultValue={initialVehicle?.nickname ?? ""}
             id="vehicle-nickname"
             maxLength={80}
@@ -88,6 +101,8 @@ export function VehicleForm({
         <div className="form-field">
           <label htmlFor="vehicle-make">Make</label>
           <input
+            aria-invalid={invalidFields.has("make")}
+            aria-describedby={invalidFields.has("make") ? "vehicle-form-error" : undefined}
             defaultValue={initialVehicle?.make ?? ""}
             id="vehicle-make"
             maxLength={80}
@@ -100,6 +115,8 @@ export function VehicleForm({
         <div className="form-field">
           <label htmlFor="vehicle-model">Model</label>
           <input
+            aria-invalid={invalidFields.has("model")}
+            aria-describedby={invalidFields.has("model") ? "vehicle-form-error" : undefined}
             defaultValue={initialVehicle?.model ?? ""}
             id="vehicle-model"
             maxLength={120}
@@ -112,6 +129,8 @@ export function VehicleForm({
         <div className="form-field">
           <label htmlFor="vehicle-year">Year</label>
           <input
+            aria-invalid={invalidFields.has("year")}
+            aria-describedby={invalidFields.has("year") ? "vehicle-form-error" : undefined}
             defaultValue={initialVehicle?.year ?? ""}
             id="vehicle-year"
             inputMode="numeric"
@@ -127,6 +146,10 @@ export function VehicleForm({
           <label htmlFor="vehicle-battery">Battery capacity</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={invalidFields.has("batteryCapacityKwh")}
+              aria-describedby={
+                invalidFields.has("batteryCapacityKwh") ? "vehicle-form-error" : undefined
+              }
               defaultValue={initialVehicle?.batteryCapacityKwh ?? ""}
               id="vehicle-battery"
               inputMode="decimal"
@@ -141,6 +164,10 @@ export function VehicleForm({
           <label htmlFor="vehicle-efficiency">Efficiency</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={invalidFields.has("efficiencyMiPerKwh")}
+              aria-describedby={
+                invalidFields.has("efficiencyMiPerKwh") ? "vehicle-form-error" : undefined
+              }
               defaultValue={initialVehicle?.efficiencyMiPerKwh ?? ""}
               id="vehicle-efficiency"
               inputMode="decimal"
@@ -159,6 +186,10 @@ export function VehicleForm({
           {connectorOptions.map((connectorType) => (
             <label className="checkbox-option" key={connectorType}>
               <input
+                aria-invalid={invalidFields.has("connectorTypes")}
+                aria-describedby={
+                  invalidFields.has("connectorTypes") ? "vehicle-form-error" : undefined
+                }
                 defaultChecked={initialVehicle?.connectorTypes.includes(connectorType) ?? false}
                 name="connectorTypes"
                 type="checkbox"
@@ -173,6 +204,10 @@ export function VehicleForm({
       <div className="form-field">
         <label htmlFor="vehicle-networks">Preferred charging networks</label>
         <input
+          aria-invalid={invalidFields.has("preferredNetworks")}
+          aria-describedby={
+            invalidFields.has("preferredNetworks") ? "vehicle-form-error" : undefined
+          }
           defaultValue={initialVehicle?.preferredNetworks.join(", ") ?? ""}
           id="vehicle-networks"
           name="preferredNetworks"
@@ -183,6 +218,8 @@ export function VehicleForm({
 
       <label className="checkbox-option checkbox-option--default">
         <input
+          aria-invalid={invalidFields.has("isDefault")}
+          aria-describedby={invalidFields.has("isDefault") ? "vehicle-form-error" : undefined}
           defaultChecked={initialVehicle?.isDefault ?? false}
           name="isDefault"
           type="checkbox"
@@ -191,7 +228,7 @@ export function VehicleForm({
       </label>
 
       {message !== null && (
-        <p className="form-message form-message--error" role="alert">
+        <p className="form-message form-message--error" id="vehicle-form-error" role="alert">
           {message}
         </p>
       )}

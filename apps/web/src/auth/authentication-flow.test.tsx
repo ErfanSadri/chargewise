@@ -105,6 +105,8 @@ describe("authentication UI flow", () => {
       "Password must contain at least 12 characters",
     );
 
+    expect(screen.getByLabelText("Password")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Password")).toHaveFocus();
     expect(registerUser).not.toHaveBeenCalled();
   });
 

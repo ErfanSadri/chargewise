@@ -101,5 +101,7 @@ describe("charging-session form", () => {
     expect(
       screen.getByText("Ending state of charge must be greater than starting state of charge"),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Ending charge")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Ending charge")).toHaveFocus();
   });
 });

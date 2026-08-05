@@ -12,6 +12,7 @@ import { ApiError, getApiErrorMessage, isUnauthenticatedError } from "../api/api
 import { searchRoute } from "../api/route-client.ts";
 import { RouteResults } from "../components/RouteResults.tsx";
 import { listVehicles, vehiclesQueryKey } from "../api/vehicle-client.ts";
+import { focusFirstInvalidFormControl } from "../forms/form-accessibility.ts";
 import "./RouteSearchPage.css";
 
 const metersPerMile = 1609.344;
@@ -44,6 +45,28 @@ function getValidationMessage(): string {
   return "Review the origin, destination, vehicle, corridor, and search preferences.";
 }
 
+function getRouteSearchInvalidFields(
+  issues: readonly {
+    path: PropertyKey[];
+  }[],
+): ReadonlySet<string> {
+  const invalidFields = new Set<string>();
+
+  for (const issue of issues) {
+    const [group, nestedField] = issue.path;
+
+    if (group === "corridorMeters") {
+      invalidFields.add("corridorMiles");
+    } else if (group === "filters" && typeof nestedField === "string") {
+      invalidFields.add(nestedField);
+    } else if (typeof group === "string") {
+      invalidFields.add(group);
+    }
+  }
+
+  return invalidFields;
+}
+
 function getRouteSearchErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "LOCATION_NOT_RESOLVED") {
@@ -65,6 +88,7 @@ function getRouteSearchErrorMessage(error: unknown): string {
 export function RouteSearchPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [invalidFields, setInvalidFields] = useState<ReadonlySet<string>>(new Set());
 
   const vehiclesQuery = useQuery({
     queryKey: vehiclesQueryKey,
@@ -84,10 +108,14 @@ export function RouteSearchPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+
+    const form = event.currentTarget;
+
     setValidationMessage(null);
+    setInvalidFields(new Set());
     routeSearchMutation.reset();
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const corridorMiles = Number(formData.get("corridorMiles"));
 
     const validation = routeSearchRequestSchema.safeParse({
@@ -105,7 +133,11 @@ export function RouteSearchPage() {
     });
 
     if (!validation.success) {
+      const invalidFieldNames = getRouteSearchInvalidFields(validation.error.issues);
+
+      setInvalidFields(invalidFieldNames);
       setValidationMessage(getValidationMessage());
+      focusFirstInvalidFormControl(form, invalidFieldNames);
       return;
     }
 
@@ -172,6 +204,10 @@ export function RouteSearchPage() {
               <div className="form-field">
                 <label htmlFor="route-origin">Origin</label>
                 <input
+                  aria-invalid={invalidFields.has("origin")}
+                  aria-describedby={
+                    invalidFields.has("origin") ? "route-search-form-error" : undefined
+                  }
                   autoComplete="street-address"
                   id="route-origin"
                   maxLength={240}
@@ -184,6 +220,10 @@ export function RouteSearchPage() {
               <div className="form-field">
                 <label htmlFor="route-destination">Destination</label>
                 <input
+                  aria-invalid={invalidFields.has("destination")}
+                  aria-describedby={
+                    invalidFields.has("destination") ? "route-search-form-error" : undefined
+                  }
                   autoComplete="street-address"
                   id="route-destination"
                   maxLength={240}
@@ -198,6 +238,10 @@ export function RouteSearchPage() {
               <div className="form-field">
                 <label htmlFor="route-vehicle">Vehicle</label>
                 <select
+                  aria-invalid={invalidFields.has("vehicleId")}
+                  aria-describedby={
+                    invalidFields.has("vehicleId") ? "route-search-form-error" : undefined
+                  }
                   id="route-vehicle"
                   name="vehicleId"
                   onChange={(event) => {
@@ -217,6 +261,10 @@ export function RouteSearchPage() {
                 <label htmlFor="route-corridor">Search corridor</label>
                 <div className="input-with-unit">
                   <input
+                    aria-invalid={invalidFields.has("corridorMiles")}
+                    aria-describedby={
+                      invalidFields.has("corridorMiles") ? "route-search-form-error" : undefined
+                    }
                     defaultValue="5"
                     id="route-corridor"
                     inputMode="decimal"
@@ -245,6 +293,12 @@ export function RouteSearchPage() {
                     {chargingLevelOptions.map((option) => (
                       <label className="checkbox-option" key={option.value}>
                         <input
+                          aria-invalid={invalidFields.has("chargingLevels")}
+                          aria-describedby={
+                            invalidFields.has("chargingLevels")
+                              ? "route-search-form-error"
+                              : undefined
+                          }
                           defaultChecked={option.value === "DC_FAST"}
                           name="chargingLevels"
                           type="checkbox"
@@ -259,6 +313,10 @@ export function RouteSearchPage() {
                 <div className="form-field">
                   <label htmlFor="route-networks">Charging networks</label>
                   <input
+                    aria-invalid={invalidFields.has("networks")}
+                    aria-describedby={
+                      invalidFields.has("networks") ? "route-search-form-error" : undefined
+                    }
                     id="route-networks"
                     name="networks"
                     placeholder="Electrify America, EVgo"
@@ -268,17 +326,41 @@ export function RouteSearchPage() {
 
                 <div className="route-search-form__toggles">
                   <label className="checkbox-option">
-                    <input defaultChecked name="compatibleOnly" type="checkbox" />
+                    <input
+                      aria-invalid={invalidFields.has("compatibleOnly")}
+                      aria-describedby={
+                        invalidFields.has("compatibleOnly") ? "route-search-form-error" : undefined
+                      }
+                      defaultChecked
+                      name="compatibleOnly"
+                      type="checkbox"
+                    />
                     <span>Compatible connectors only</span>
                   </label>
 
                   <label className="checkbox-option">
-                    <input defaultChecked name="publicOnly" type="checkbox" />
+                    <input
+                      aria-invalid={invalidFields.has("publicOnly")}
+                      aria-describedby={
+                        invalidFields.has("publicOnly") ? "route-search-form-error" : undefined
+                      }
+                      defaultChecked
+                      name="publicOnly"
+                      type="checkbox"
+                    />
                     <span>Public stations only</span>
                   </label>
 
                   <label className="checkbox-option">
-                    <input defaultChecked name="operatingOnly" type="checkbox" />
+                    <input
+                      aria-invalid={invalidFields.has("operatingOnly")}
+                      aria-describedby={
+                        invalidFields.has("operatingOnly") ? "route-search-form-error" : undefined
+                      }
+                      defaultChecked
+                      name="operatingOnly"
+                      type="checkbox"
+                    />
                     <span>Operating stations only</span>
                   </label>
                 </div>
@@ -286,7 +368,11 @@ export function RouteSearchPage() {
             </details>
 
             {(validationMessage !== null || routeSearchMutation.isError) && (
-              <p className="form-message form-message--error" role="alert">
+              <p
+                className="form-message form-message--error"
+                id="route-search-form-error"
+                role="alert"
+              >
                 {validationMessage ?? getRouteSearchErrorMessage(routeSearchMutation.error)}
               </p>
             )}

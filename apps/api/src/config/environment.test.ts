@@ -65,4 +65,53 @@ describe("parseEnvironment", () => {
       }),
     ).toThrowError("Invalid environment configuration");
   });
+  it("accepts explicit secure production transport and proxy configuration", () => {
+    expect(
+      parseEnvironment({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        WEB_ORIGIN: "https://chargewise.example",
+        REDIS_URL: "rediss://cache.example:6380",
+        TRUST_PROXY_HOPS: "1",
+      }),
+    ).toMatchObject({
+      NODE_ENV: "production",
+      WEB_ORIGIN: "https://chargewise.example",
+      REDIS_URL: "rediss://cache.example:6380",
+      TRUST_PROXY_HOPS: 1,
+    });
+  });
+
+  it("rejects an insecure production web origin", () => {
+    expect(() =>
+      parseEnvironment({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        REDIS_URL: "rediss://cache.example:6380",
+        TRUST_PROXY_HOPS: "1",
+      }),
+    ).toThrowError("Invalid environment configuration");
+  });
+
+  it("rejects non-TLS Redis in production", () => {
+    expect(() =>
+      parseEnvironment({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        WEB_ORIGIN: "https://chargewise.example",
+        TRUST_PROXY_HOPS: "1",
+      }),
+    ).toThrowError("Invalid environment configuration");
+  });
+
+  it("requires an explicit trusted proxy hop count in production", () => {
+    expect(() =>
+      parseEnvironment({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        WEB_ORIGIN: "https://chargewise.example",
+        REDIS_URL: "rediss://cache.example:6380",
+      }),
+    ).toThrowError("Invalid environment configuration");
+  });
 });

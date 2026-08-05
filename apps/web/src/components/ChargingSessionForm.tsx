@@ -8,6 +8,8 @@ import {
 } from "@chargewise/shared";
 import { useState, type FormEvent } from "react";
 
+import { focusFirstInvalidFormControl, getInvalidFieldNames } from "../forms/form-accessibility.ts";
+
 export interface ChargingStationOption {
   id: string;
   name: string;
@@ -136,10 +138,13 @@ export function ChargingSessionForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+
+    const form = event.currentTarget;
+
     setFieldErrors({});
     setValidationMessage(null);
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
 
     const validation = createChargingSessionRequestSchema.safeParse({
       vehicleId: String(formData.get("vehicleId") ?? ""),
@@ -160,8 +165,11 @@ export function ChargingSessionForm({
     });
 
     if (!validation.success) {
+      const invalidFieldNames = getInvalidFieldNames(validation.error.issues);
+
       setFieldErrors(getFieldErrors(validation.error.issues));
       setValidationMessage("Review the highlighted charging-session fields.");
+      focusFirstInvalidFormControl(form, invalidFieldNames);
       return;
     }
 
@@ -174,6 +182,7 @@ export function ChargingSessionForm({
         <div className="form-field">
           <label htmlFor="charging-session-vehicleId">Vehicle</label>
           <select
+            aria-invalid={fieldErrors.vehicleId !== undefined}
             aria-describedby={
               fieldErrors.vehicleId === undefined ? undefined : "charging-session-vehicleId-error"
             }
@@ -193,6 +202,7 @@ export function ChargingSessionForm({
         <div className="form-field">
           <label htmlFor="charging-session-stationId">Charging station</label>
           <select
+            aria-invalid={fieldErrors.stationId !== undefined}
             aria-describedby={
               fieldErrors.stationId === undefined ? undefined : "charging-session-stationId-error"
             }
@@ -212,6 +222,7 @@ export function ChargingSessionForm({
         <div className="form-field">
           <label htmlFor="charging-session-startedAt">Session started</label>
           <input
+            aria-invalid={fieldErrors.startedAt !== undefined}
             aria-describedby={
               fieldErrors.startedAt === undefined ? undefined : "charging-session-startedAt-error"
             }
@@ -227,6 +238,10 @@ export function ChargingSessionForm({
         <div className="form-field">
           <label htmlFor="charging-session-issueType">Charging issue</label>
           <select
+            aria-invalid={fieldErrors.issueType !== undefined}
+            aria-describedby={
+              fieldErrors.issueType === undefined ? undefined : "charging-session-issueType-error"
+            }
             defaultValue={initialSession?.issueType ?? "NONE"}
             id="charging-session-issueType"
             name="issueType"
@@ -244,6 +259,12 @@ export function ChargingSessionForm({
           <label htmlFor="charging-session-chargingMinutes">Charging time</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={fieldErrors.chargingMinutes !== undefined}
+              aria-describedby={
+                fieldErrors.chargingMinutes === undefined
+                  ? undefined
+                  : "charging-session-chargingMinutes-error"
+              }
               defaultValue={initialSession?.chargingMinutes ?? 30}
               id="charging-session-chargingMinutes"
               inputMode="numeric"
@@ -262,6 +283,12 @@ export function ChargingSessionForm({
           <label htmlFor="charging-session-waitMinutes">Wait time</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={fieldErrors.waitMinutes !== undefined}
+              aria-describedby={
+                fieldErrors.waitMinutes === undefined
+                  ? undefined
+                  : "charging-session-waitMinutes-error"
+              }
               defaultValue={initialSession?.waitMinutes ?? 0}
               id="charging-session-waitMinutes"
               inputMode="numeric"
@@ -280,6 +307,12 @@ export function ChargingSessionForm({
           <label htmlFor="charging-session-energyAddedKwh">Energy added</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={fieldErrors.energyAddedKwh !== undefined}
+              aria-describedby={
+                fieldErrors.energyAddedKwh === undefined
+                  ? undefined
+                  : "charging-session-energyAddedKwh-error"
+              }
               defaultValue={initialSession?.energyAddedKwh ?? ""}
               id="charging-session-energyAddedKwh"
               inputMode="decimal"
@@ -298,6 +331,10 @@ export function ChargingSessionForm({
           <div className="input-with-unit input-with-unit--prefix">
             <span>$</span>
             <input
+              aria-invalid={fieldErrors.totalCost !== undefined}
+              aria-describedby={
+                fieldErrors.totalCost === undefined ? undefined : "charging-session-totalCost-error"
+              }
               defaultValue={initialSession?.totalCost ?? "0.00"}
               id="charging-session-totalCost"
               inputMode="decimal"
@@ -313,6 +350,12 @@ export function ChargingSessionForm({
           <label htmlFor="charging-session-startingSoc">Starting charge</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={fieldErrors.startingSoc !== undefined}
+              aria-describedby={
+                fieldErrors.startingSoc === undefined
+                  ? undefined
+                  : "charging-session-startingSoc-error"
+              }
               defaultValue={initialSession?.startingSoc ?? 20}
               id="charging-session-startingSoc"
               inputMode="numeric"
@@ -332,6 +375,10 @@ export function ChargingSessionForm({
           <label htmlFor="charging-session-endingSoc">Ending charge</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={fieldErrors.endingSoc !== undefined}
+              aria-describedby={
+                fieldErrors.endingSoc === undefined ? undefined : "charging-session-endingSoc-error"
+              }
               defaultValue={initialSession?.endingSoc ?? 80}
               id="charging-session-endingSoc"
               inputMode="numeric"
@@ -351,6 +398,12 @@ export function ChargingSessionForm({
           <label htmlFor="charging-session-odometerMiles">Odometer</label>
           <div className="input-with-unit">
             <input
+              aria-invalid={fieldErrors.odometerMiles !== undefined}
+              aria-describedby={
+                fieldErrors.odometerMiles === undefined
+                  ? undefined
+                  : "charging-session-odometerMiles-error"
+              }
               defaultValue={initialSession?.odometerMiles ?? ""}
               id="charging-session-odometerMiles"
               inputMode="numeric"
@@ -368,6 +421,10 @@ export function ChargingSessionForm({
       <div className="form-field">
         <label htmlFor="charging-session-notes">Notes</label>
         <textarea
+          aria-invalid={fieldErrors.notes !== undefined}
+          aria-describedby={
+            fieldErrors.notes === undefined ? undefined : "charging-session-notes-error"
+          }
           defaultValue={initialSession?.notes ?? ""}
           id="charging-session-notes"
           maxLength={1000}

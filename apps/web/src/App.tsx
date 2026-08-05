@@ -47,6 +47,10 @@ function App() {
 
   return (
     <div className="page-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
+
       <header className="page-shell__header">
         <NavLink className="brand" to="/">
           ChargeWise
@@ -123,7 +127,7 @@ function App() {
         </p>
       )}
 
-      <main className="page-shell__content">
+      <main className="page-shell__content" id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
 
