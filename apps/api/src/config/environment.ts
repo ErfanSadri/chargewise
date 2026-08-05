@@ -85,6 +85,7 @@ const environmentSchema = z
     DATABASE_URL: databaseUrlSchema,
     REDIS_URL: redisUrlSchema,
     ROUTE_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+    ROUTE_PROVIDER_MODE: z.enum(["live", "fixture"]).default("live"),
     SESSION_SECRET: z.string().min(32, "Must contain at least 32 characters"),
 
     OPENROUTESERVICE_API_KEY: z.string().trim().min(1).optional(),
@@ -93,6 +94,14 @@ const environmentSchema = z
   .superRefine((value, context) => {
     if (value.NODE_ENV !== "production") {
       return;
+    }
+
+    if (value.ROUTE_PROVIDER_MODE !== "live") {
+      context.addIssue({
+        code: "custom",
+        path: ["ROUTE_PROVIDER_MODE"],
+        message: "Fixture providers are not allowed in production",
+      });
     }
 
     const webOrigin = parseUrl(value.WEB_ORIGIN);
