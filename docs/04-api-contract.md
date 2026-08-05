@@ -357,6 +357,11 @@ GET /analytics/networks?from={date}&to={date}
 GET /analytics/stations?from={date}&to={date}
 ```
 
+All analytics endpoints require authentication and include only charging sessions
+owned by the authenticated user. `from` and `to` are optional inclusive UTC
+calendar dates in `YYYY-MM-DD` format. Responses use decimal strings so database
+precision is not lost through JavaScript floating-point conversion.
+
 Summary response:
 
 ```json
@@ -368,14 +373,63 @@ Summary response:
     "averageCostPerKwh": "0.1551",
     "averageChargingMinutes": "29.50",
     "averageWaitMinutes": "6.25",
-    "averageObservedPowerKw": "79.00",
+    "averageObservedPowerKw": "79.02",
     "issueFreePercentage": "75.00"
   }
 }
 ```
 
-Empty datasets return zero for additive counts/totals and `null` for undefined
-ratios or averages.
+`averageObservedPowerKw` divides total energy by total charging hours. It is
+observed session performance, not advertised charger capacity.
+
+Network response:
+
+```json
+{
+  "data": [
+    {
+      "network": "Electrify America",
+      "sessionCount": 2,
+      "totalEnergyKwh": "70.000",
+      "totalCost": "14.00",
+      "averageCostPerKwh": "0.2000",
+      "averageObservedPowerKw": "84.00",
+      "issueFreePercentage": "50.00"
+    }
+  ]
+}
+```
+
+Blank or missing station networks are grouped as `Unknown network`. Network
+groups are ordered by total energy descending, then session count and name.
+
+Station response:
+
+```json
+{
+  "data": [
+    {
+      "stationId": "ecba119c-963d-4931-acb8-1320791258be",
+      "name": "Westfield Fast Charging",
+      "network": "Electrify America",
+      "sessionCount": 2,
+      "totalEnergyKwh": "70.000",
+      "totalCost": "14.00",
+      "averageCostPerKwh": "0.2000",
+      "averageChargingMinutes": "25.00",
+      "averageWaitMinutes": "2.50",
+      "averageObservedPowerKw": "84.00",
+      "issueFreePercentage": "50.00",
+      "lastSessionAt": "2026-08-02T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+Station groups are ordered by session count descending, then total energy, name,
+and station ID. Empty datasets return zero for additive summary counts/totals
+and `null` for undefined summary ratios or averages. Network and station
+breakdowns return empty arrays.
 
 ## 9. Health
 

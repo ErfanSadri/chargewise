@@ -1,5 +1,7 @@
 import type { Server } from "node:http";
 
+import { createAnalyticsDatabase } from "./analytics/analytics-database.js";
+import { createAnalyticsService } from "./analytics/analytics-service.js";
 import { createApp } from "./app.js";
 import { createAuthenticationDatabase } from "./auth/authentication-database.js";
 import { createAuthenticationService } from "./auth/authentication-service.js";
@@ -113,6 +115,12 @@ const chargingSessionService = createChargingSessionService({
   vehicles: vehicleDatabase.vehicles,
 });
 
+const analyticsDatabase = createAnalyticsDatabase(environment.DATABASE_URL);
+
+const analyticsService = createAnalyticsService({
+  analytics: analyticsDatabase.analytics,
+});
+
 const routeSearchDatabase = createRouteSearchDatabase(environment.DATABASE_URL);
 
 const routeSearchService = createRouteSearchService({
@@ -135,6 +143,10 @@ const routeSearchService = createRouteSearchService({
 });
 
 const app = createApp({
+  analytics: {
+    service: analyticsService,
+    authenticationService,
+  },
   authentication: {
     service: authenticationService,
     rateLimiter: sessionInfrastructure.rateLimiter,
@@ -181,6 +193,7 @@ function closeInfrastructure(): Promise<void> {
     vehicleDatabase.close(),
     favoriteDatabase.close(),
     chargingSessionDatabase.close(),
+    analyticsDatabase.close(),
     routeSearchDatabase.close(),
     infrastructureHealthChecks.close(),
   ]).then(() => undefined);
