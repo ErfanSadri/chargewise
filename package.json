@@ -18,7 +18,8 @@
     "security:check": "pnpm security:secrets && pnpm security:audit",
     "e2e:prepare": "pnpm --filter @chargewise/api exec tsx scripts/prepare-e2e.ts",
     "e2e": "pnpm e2e:prepare && playwright test",
-    "e2e:headed": "pnpm e2e:prepare && playwright test --headed"
+    "e2e:headed": "pnpm e2e:prepare && playwright test --headed",
+    "performance:route-search": "pnpm --filter @chargewise/api exec tsx scripts/measure-route-performance.ts"
   },
   "author": "Erfan Sadri",
   "engines": {

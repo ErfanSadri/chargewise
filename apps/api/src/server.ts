@@ -156,6 +156,17 @@ const routeSearchService = createRouteSearchService({
       "Route-search cache operation failed",
     );
   },
+  onPerformance: (measurement) => {
+    logger.info(
+      {
+        cacheStatus: measurement.cacheStatus,
+        durationMs: Number(measurement.durationMs.toFixed(3)),
+        discoveredStationCount: measurement.discoveredStationCount,
+        returnedStationCount: measurement.returnedStationCount,
+      },
+      "Route search completed",
+    );
+  },
 });
 
 const app = createApp({
