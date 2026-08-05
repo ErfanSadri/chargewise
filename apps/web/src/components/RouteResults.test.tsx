@@ -143,6 +143,14 @@ describe("route results", () => {
     expect(within(details).getByText("Public access")).toBeInTheDocument();
     expect(within(details).getByText("Operating")).toBeInTheDocument();
     expect(screen.getByTestId("selected-map-station")).toHaveTextContent(firstStation.id);
+    expect(
+      within(details).getByRole("link", {
+        name: "Log charging session",
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/sessions?stationId=${firstStation.id}&stationName=Westfield+Fast+Charging`,
+    );
   });
 
   it("clears effective selection when filters hide the selected station", async () => {
