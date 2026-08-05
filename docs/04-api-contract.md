@@ -337,6 +337,18 @@ DELETE /charging-sessions/:chargingSessionId
 The service verifies that the authenticated user owns the selected vehicle.
 The station may be shared because station records are public-source data.
 
+- `POST` returns `201 Created` with the session representation.
+- `GET /charging-sessions/:chargingSessionId` and `PATCH` return `200 OK`.
+- `DELETE` returns `204 No Content`.
+- List results are ordered by `startedAt` descending, then ID descending.
+- `from` and `to` are inclusive UTC calendar dates in `YYYY-MM-DD` format.
+- `cursor` is the ID of the last session returned by the previous page.
+- A list page contains at most 50 sessions and returns `meta.nextCursor`.
+- Update requests are partial but must include at least one field.
+- `endingSoc` must remain greater than `startingSoc` after merging a patch
+  with the stored session.
+- Missing, unowned, and cross-user resources return `404 NOT_FOUND`.
+
 ## 8. Analytics
 
 ```text

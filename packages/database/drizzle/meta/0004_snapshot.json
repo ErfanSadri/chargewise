@@ -1,0 +1,781 @@
+{
+  "id": "2f041dfe-cefc-4bc1-bcf5-02fe8ca5307d",
+  "prevId": "b676d3b9-f6ab-4d73-9591-d04748a2070a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.charging_sessions": {
+      "name": "charging_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "station_id": {
+          "name": "station_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "charging_minutes": {
+          "name": "charging_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wait_minutes": {
+          "name": "wait_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "energy_added_kwh": {
+          "name": "energy_added_kwh",
+          "type": "numeric(7, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_cost": {
+          "name": "total_cost",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starting_soc": {
+          "name": "starting_soc",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ending_soc": {
+          "name": "ending_soc",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "odometer_miles": {
+          "name": "odometer_miles",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "issue_type": {
+          "name": "issue_type",
+          "type": "charging_issue_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NONE'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "varchar(1000)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "charging_sessions_user_started_at_index": {
+          "name": "charging_sessions_user_started_at_index",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "charging_sessions_vehicle_id_index": {
+          "name": "charging_sessions_vehicle_id_index",
+          "columns": [
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "charging_sessions_station_id_index": {
+          "name": "charging_sessions_station_id_index",
+          "columns": [
+            {
+              "expression": "station_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "charging_sessions_user_id_users_id_fk": {
+          "name": "charging_sessions_user_id_users_id_fk",
+          "tableFrom": "charging_sessions",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "charging_sessions_vehicle_id_vehicles_id_fk": {
+          "name": "charging_sessions_vehicle_id_vehicles_id_fk",
+          "tableFrom": "charging_sessions",
+          "tableTo": "vehicles",
+          "columnsFrom": ["vehicle_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "charging_sessions_station_id_stations_id_fk": {
+          "name": "charging_sessions_station_id_stations_id_fk",
+          "tableFrom": "charging_sessions",
+          "tableTo": "stations",
+          "columnsFrom": ["station_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "charging_sessions_minutes_valid_check": {
+          "name": "charging_sessions_minutes_valid_check",
+          "value": "\"charging_sessions\".\"charging_minutes\" > 0 AND \"charging_sessions\".\"wait_minutes\" >= 0"
+        },
+        "charging_sessions_energy_positive_check": {
+          "name": "charging_sessions_energy_positive_check",
+          "value": "\"charging_sessions\".\"energy_added_kwh\" > 0 AND \"charging_sessions\".\"energy_added_kwh\" <> 'NaN'::numeric"
+        },
+        "charging_sessions_cost_nonnegative_check": {
+          "name": "charging_sessions_cost_nonnegative_check",
+          "value": "\"charging_sessions\".\"total_cost\" >= 0 AND \"charging_sessions\".\"total_cost\" <> 'NaN'::numeric"
+        },
+        "charging_sessions_soc_valid_check": {
+          "name": "charging_sessions_soc_valid_check",
+          "value": "\"charging_sessions\".\"starting_soc\" BETWEEN 0 AND 99 AND \"charging_sessions\".\"ending_soc\" BETWEEN 1 AND 100 AND \"charging_sessions\".\"ending_soc\" > \"charging_sessions\".\"starting_soc\""
+        },
+        "charging_sessions_odometer_nonnegative_check": {
+          "name": "charging_sessions_odometer_nonnegative_check",
+          "value": "\"charging_sessions\".\"odometer_miles\" IS NULL OR \"charging_sessions\".\"odometer_miles\" >= 0"
+        },
+        "charging_sessions_notes_not_blank_check": {
+          "name": "charging_sessions_notes_not_blank_check",
+          "value": "\"charging_sessions\".\"notes\" IS NULL OR length(btrim(\"charging_sessions\".\"notes\")) > 0"
+        },
+        "charging_sessions_timestamps_valid_check": {
+          "name": "charging_sessions_timestamps_valid_check",
+          "value": "isfinite(\"charging_sessions\".\"started_at\") AND isfinite(\"charging_sessions\".\"created_at\") AND isfinite(\"charging_sessions\".\"updated_at\") AND \"charging_sessions\".\"updated_at\" >= \"charging_sessions\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.favorites": {
+      "name": "favorites",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "station_id": {
+          "name": "station_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "favorites_station_id_index": {
+          "name": "favorites_station_id_index",
+          "columns": [
+            {
+              "expression": "station_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_user_created_at_index": {
+          "name": "favorites_user_created_at_index",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "favorites_user_id_users_id_fk": {
+          "name": "favorites_user_id_users_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "favorites_station_id_stations_id_fk": {
+          "name": "favorites_station_id_stations_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "stations",
+          "columnsFrom": ["station_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "favorites_user_station_primary_key": {
+          "name": "favorites_user_station_primary_key",
+          "columns": ["user_id", "station_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "favorites_created_at_finite_check": {
+          "name": "favorites_created_at_finite_check",
+          "value": "isfinite(\"favorites\".\"created_at\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.stations": {
+      "name": "stations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source": {
+          "name": "source",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_station_id": {
+          "name": "source_station_id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "network": {
+          "name": "network",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "street_address": {
+          "name": "street_address",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postal_code": {
+          "name": "postal_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location": {
+          "name": "location",
+          "type": "geography(Point,4326)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_code": {
+          "name": "access_code",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "level_2_port_count": {
+          "name": "level_2_port_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "dc_fast_port_count": {
+          "name": "dc_fast_port_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "connector_codes": {
+          "name": "connector_codes",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "raw_source_data": {
+          "name": "raw_source_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "stations_location_gist_index": {
+          "name": "stations_location_gist_index",
+          "columns": [
+            {
+              "expression": "location",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        },
+        "stations_network_index": {
+          "name": "stations_network_index",
+          "columns": [
+            {
+              "expression": "network",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "stations_source_identity_unique": {
+          "name": "stations_source_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": ["source", "source_station_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "stations_source_not_blank_check": {
+          "name": "stations_source_not_blank_check",
+          "value": "length(btrim(\"stations\".\"source\")) > 0"
+        },
+        "stations_source_station_id_not_blank_check": {
+          "name": "stations_source_station_id_not_blank_check",
+          "value": "length(btrim(\"stations\".\"source_station_id\")) > 0"
+        },
+        "stations_name_not_blank_check": {
+          "name": "stations_name_not_blank_check",
+          "value": "length(btrim(\"stations\".\"name\")) > 0"
+        },
+        "stations_port_counts_nonnegative_check": {
+          "name": "stations_port_counts_nonnegative_check",
+          "value": "\"stations\".\"level_2_port_count\" >= 0 AND \"stations\".\"dc_fast_port_count\" >= 0"
+        },
+        "stations_connector_codes_valid_check": {
+          "name": "stations_connector_codes_valid_check",
+          "value": "array_position(\"stations\".\"connector_codes\", NULL) IS NULL AND \"stations\".\"connector_codes\" <@ ARRAY['CCS', 'NACS', 'J1772', 'CHADEMO']::text[]"
+        },
+        "stations_timestamps_finite_check": {
+          "name": "stations_timestamps_finite_check",
+          "value": "(\"stations\".\"source_updated_at\" IS NULL OR isfinite(\"stations\".\"source_updated_at\")) AND isfinite(\"stations\".\"last_synced_at\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": ["email"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "users_email_normalized_check": {
+          "name": "users_email_normalized_check",
+          "value": "\"users\".\"email\" = lower(btrim(\"users\".\"email\")) AND length(\"users\".\"email\") > 0"
+        },
+        "users_password_hash_not_blank_check": {
+          "name": "users_password_hash_not_blank_check",
+          "value": "length(btrim(\"users\".\"password_hash\")) > 0"
+        },
+        "users_timestamps_valid_check": {
+          "name": "users_timestamps_valid_check",
+          "value": "isfinite(\"users\".\"created_at\") AND isfinite(\"users\".\"updated_at\") AND \"users\".\"updated_at\" >= \"users\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.vehicles": {
+      "name": "vehicles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "make": {
+          "name": "make",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "battery_capacity_kwh": {
+          "name": "battery_capacity_kwh",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "efficiency_mi_per_kwh": {
+          "name": "efficiency_mi_per_kwh",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "connector_types": {
+          "name": "connector_types",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preferred_networks": {
+          "name": "preferred_networks",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vehicles_user_id_index": {
+          "name": "vehicles_user_id_index",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "vehicles_one_default_per_user_index": {
+          "name": "vehicles_one_default_per_user_index",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"vehicles\".\"is_default\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "vehicles_user_id_users_id_fk": {
+          "name": "vehicles_user_id_users_id_fk",
+          "tableFrom": "vehicles",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "vehicles_nickname_not_blank_check": {
+          "name": "vehicles_nickname_not_blank_check",
+          "value": "length(btrim(\"vehicles\".\"nickname\")) > 0"
+        },
+        "vehicles_make_not_blank_check": {
+          "name": "vehicles_make_not_blank_check",
+          "value": "length(btrim(\"vehicles\".\"make\")) > 0"
+        },
+        "vehicles_model_not_blank_check": {
+          "name": "vehicles_model_not_blank_check",
+          "value": "length(btrim(\"vehicles\".\"model\")) > 0"
+        },
+        "vehicles_year_range_check": {
+          "name": "vehicles_year_range_check",
+          "value": "\"vehicles\".\"year\" BETWEEN 1990 AND 2100"
+        },
+        "vehicles_battery_capacity_positive_check": {
+          "name": "vehicles_battery_capacity_positive_check",
+          "value": "\"vehicles\".\"battery_capacity_kwh\" IS NULL OR (\"vehicles\".\"battery_capacity_kwh\" > 0 AND \"vehicles\".\"battery_capacity_kwh\" <> 'NaN'::numeric)"
+        },
+        "vehicles_efficiency_positive_check": {
+          "name": "vehicles_efficiency_positive_check",
+          "value": "\"vehicles\".\"efficiency_mi_per_kwh\" IS NULL OR (\"vehicles\".\"efficiency_mi_per_kwh\" > 0 AND \"vehicles\".\"efficiency_mi_per_kwh\" <> 'NaN'::numeric)"
+        },
+        "vehicles_connector_types_supported_check": {
+          "name": "vehicles_connector_types_supported_check",
+          "value": "cardinality(\"vehicles\".\"connector_types\") > 0 AND array_position(\"vehicles\".\"connector_types\", NULL) IS NULL AND \"vehicles\".\"connector_types\" <@ ARRAY['CCS', 'NACS', 'J1772', 'CHADEMO']::text[]"
+        },
+        "vehicles_preferred_networks_valid_check": {
+          "name": "vehicles_preferred_networks_valid_check",
+          "value": "array_position(\"vehicles\".\"preferred_networks\", NULL) IS NULL"
+        },
+        "vehicles_timestamps_valid_check": {
+          "name": "vehicles_timestamps_valid_check",
+          "value": "isfinite(\"vehicles\".\"created_at\") AND isfinite(\"vehicles\".\"updated_at\") AND \"vehicles\".\"updated_at\" >= \"vehicles\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.charging_issue_type": {
+      "name": "charging_issue_type",
+      "schema": "public",
+      "values": ["NONE", "UNAVAILABLE", "BROKEN", "SLOW", "PAYMENT", "OCCUPIED", "OTHER"]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

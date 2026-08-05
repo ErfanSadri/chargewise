@@ -5,6 +5,8 @@ import { createAuthenticationDatabase } from "./auth/authentication-database.js"
 import { createAuthenticationService } from "./auth/authentication-service.js";
 import { argon2PasswordHasher } from "./auth/password-hasher.js";
 import { createSessionInfrastructure } from "./auth/session-infrastructure.js";
+import { createChargingSessionDatabase } from "./charging-sessions/charging-session-database.js";
+import { createChargingSessionService } from "./charging-sessions/charging-session-service.js";
 import { loadLocalEnvironment, parseEnvironment } from "./config/environment.js";
 import { createFavoriteDatabase } from "./favorites/favorite-database.js";
 import { createFavoriteService } from "./favorites/favorite-service.js";
@@ -104,6 +106,13 @@ const favoriteService = createFavoriteService({
   favorites: favoriteDatabase.favorites,
 });
 
+const chargingSessionDatabase = createChargingSessionDatabase(environment.DATABASE_URL);
+
+const chargingSessionService = createChargingSessionService({
+  sessions: chargingSessionDatabase.sessions,
+  vehicles: vehicleDatabase.vehicles,
+});
+
 const routeSearchDatabase = createRouteSearchDatabase(environment.DATABASE_URL);
 
 const routeSearchService = createRouteSearchService({
@@ -129,6 +138,12 @@ const app = createApp({
   authentication: {
     service: authenticationService,
     rateLimiter: sessionInfrastructure.rateLimiter,
+    isProduction: environment.NODE_ENV === "production",
+    webOrigin: environment.WEB_ORIGIN,
+  },
+  chargingSessions: {
+    service: chargingSessionService,
+    authenticationService,
     isProduction: environment.NODE_ENV === "production",
     webOrigin: environment.WEB_ORIGIN,
   },
@@ -165,6 +180,7 @@ function closeInfrastructure(): Promise<void> {
     authenticationDatabase.close(),
     vehicleDatabase.close(),
     favoriteDatabase.close(),
+    chargingSessionDatabase.close(),
     routeSearchDatabase.close(),
     infrastructureHealthChecks.close(),
   ]).then(() => undefined);
