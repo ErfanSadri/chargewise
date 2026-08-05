@@ -3,7 +3,6 @@ import {
   type PublicVehicle,
   type RouteChargingLevel,
   type RouteSearchRequest,
-  type RouteSearchResponse,
 } from "@chargewise/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
@@ -11,6 +10,7 @@ import { Link } from "react-router";
 
 import { ApiError, getApiErrorMessage, isUnauthenticatedError } from "../api/api-client.ts";
 import { searchRoute } from "../api/route-client.ts";
+import { RouteResults } from "../components/RouteResults.tsx";
 import { listVehicles, vehiclesQueryKey } from "../api/vehicle-client.ts";
 import "./RouteSearchPage.css";
 
@@ -60,74 +60,6 @@ function getRouteSearchErrorMessage(error: unknown): string {
   }
 
   return getApiErrorMessage(error, "ChargeWise could not complete the route search.");
-}
-
-function formatDistance(distanceMeters: number): string {
-  return `${(distanceMeters / metersPerMile).toFixed(1)} mi`;
-}
-
-function formatDuration(durationSeconds: number): string {
-  const totalMinutes = Math.round(durationSeconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours === 0) {
-    return `${minutes} min`;
-  }
-
-  return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
-}
-
-function getStationCountLabel(stationCount: number): string {
-  return `${stationCount} ${stationCount === 1 ? "station" : "stations"} found`;
-}
-
-interface RouteResultSummaryProps {
-  response: RouteSearchResponse;
-}
-
-function RouteResultSummary({ response }: RouteResultSummaryProps) {
-  const { route } = response.data;
-
-  return (
-    <section aria-labelledby="route-result-heading" aria-live="polite" className="route-result">
-      <div className="route-result__heading">
-        <div>
-          <p className="eyebrow">Route ready</p>
-          <h2 id="route-result-heading">
-            {route.origin.label} to {route.destination.label}
-          </h2>
-        </div>
-
-        <span className="route-result__count">
-          {getStationCountLabel(response.meta.stationCount)}
-        </span>
-      </div>
-
-      <dl className="route-result__metrics">
-        <div>
-          <dt>Distance</dt>
-          <dd>{formatDistance(route.distanceMeters)}</dd>
-        </div>
-        <div>
-          <dt>Estimated drive time</dt>
-          <dd>{formatDuration(route.durationSeconds)}</dd>
-        </div>
-        <div>
-          <dt>Route source</dt>
-          <dd>OpenRouteService</dd>
-        </div>
-        <div>
-          <dt>Station source</dt>
-          <dd>NLR AFDC</dd>
-        </div>
-      </dl>
-
-      <p className="route-result__next">
-        The interactive map and synchronized station list are the next step.
-      </p>
-    </section>
-  );
 }
 
 export function RouteSearchPage() {
@@ -370,9 +302,7 @@ export function RouteSearchPage() {
             </div>
           </form>
 
-          {routeSearchMutation.isSuccess && (
-            <RouteResultSummary response={routeSearchMutation.data} />
-          )}
+          {routeSearchMutation.isSuccess && <RouteResults response={routeSearchMutation.data} />}
         </>
       )}
     </section>
