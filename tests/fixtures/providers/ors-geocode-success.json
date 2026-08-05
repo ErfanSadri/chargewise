@@ -1,0 +1,29 @@
+{
+  "geocoding": {
+    "version": "0.2",
+    "attribution": "openrouteservice"
+  },
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-118.593153, 34.15404]
+      },
+      "properties": {
+        "label": "Woodland Hills, Los Angeles, California, United States"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-118.60592, 34.16834]
+      },
+      "properties": {
+        "label": "Woodland Hills, California, United States"
+      }
+    }
+  ]
+}

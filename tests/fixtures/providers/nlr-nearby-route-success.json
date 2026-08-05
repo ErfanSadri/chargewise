@@ -1,0 +1,46 @@
+{
+  "station_locator_url": "https://afdc.energy.gov/stations/",
+  "total_results": 2,
+  "fuel_stations": [
+    {
+      "id": 101001,
+      "fuel_type_code": "ELEC",
+      "station_name": "Westfield Topanga",
+      "street_address": "6600 Topanga Canyon Boulevard",
+      "city": "Canoga Park",
+      "state": "CA",
+      "zip": "91303",
+      "country": "US",
+      "latitude": 34.19012,
+      "longitude": -118.60372,
+      "ev_network": "Electrify America",
+      "ev_connector_types": ["J1772COMBO", "CHADEMO"],
+      "ev_level2_evse_num": null,
+      "ev_dc_fast_num": 10,
+      "access_code": "public",
+      "status_code": "E",
+      "updated_at": "2026-07-20T18:30:00Z",
+      "distance_km": 1.5
+    },
+    {
+      "id": 101002,
+      "fuel_type_code": "ELEC",
+      "station_name": "Campus Charging",
+      "street_address": null,
+      "city": "San Diego",
+      "state": "CA",
+      "zip": "92093",
+      "country": "US",
+      "latitude": 32.877207,
+      "longitude": -117.23952,
+      "ev_network": "Tesla",
+      "ev_connector_types": ["TESLA", "J1772", "NEMA1450"],
+      "ev_level2_evse_num": 4,
+      "ev_dc_fast_num": null,
+      "access_code": "public",
+      "status_code": "E",
+      "updated_at": "2026-07-22T10:00:00Z",
+      "distance_km": 0.25
+    }
+  ]
+}
