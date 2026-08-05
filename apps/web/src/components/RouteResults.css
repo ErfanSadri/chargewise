@@ -447,3 +447,27 @@
     max-width: none;
   }
 }
+
+.station-details__favorite-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.station-details__favorite-actions .form-message {
+  margin: 0;
+  flex: 1 1 18rem;
+}
+
+@media (max-width: 42rem) {
+  .station-details__favorite-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .station-details__favorite-actions .button {
+    width: 100%;
+  }
+}

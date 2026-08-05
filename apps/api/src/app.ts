@@ -6,6 +6,7 @@ import {
   createAuthenticationRouter,
   type AuthenticationRouterOptions,
 } from "./auth/authentication-router.js";
+import { createFavoriteRouter, type FavoriteRouterOptions } from "./favorites/favorite-router.js";
 import { createHealthRouter } from "./health/health-router.js";
 import type { HealthChecks } from "./health/health-service.js";
 import { errorHandler, notFoundHandler } from "./http/error-handlers.js";
@@ -18,6 +19,7 @@ import { createVehicleRouter, type VehicleRouterOptions } from "./vehicles/vehic
 
 export interface AppOptions {
   authentication: AuthenticationRouterOptions;
+  favorites?: FavoriteRouterOptions;
   routes: RouteSearchRouterOptions;
   vehicles: VehicleRouterOptions;
   healthChecks: HealthChecks;
@@ -41,6 +43,10 @@ export function createApp(options: AppOptions) {
   app.use(express.json({ limit: "100kb" }));
 
   app.use("/api/v1/auth", createAuthenticationRouter(options.authentication));
+
+  if (options.favorites !== undefined) {
+    app.use("/api/v1/favorites", createFavoriteRouter(options.favorites));
+  }
   app.use("/api/v1/routes", createRouteSearchRouter(options.routes));
   app.use("/api/v1/vehicles", createVehicleRouter(options.vehicles));
   app.use("/api/v1/health", createHealthRouter(options.healthChecks));

@@ -75,6 +75,10 @@ export interface RouteSearchStationRepository {
   ) => Promise<readonly PersistedStationIdentity[]>;
 }
 
+export interface RouteSearchFavoriteRepository {
+  findStationIdsByUser: (userId: string) => Promise<string[]>;
+}
+
 export interface RouteSearchLocation {
   label: string;
   longitude: number;
@@ -95,7 +99,7 @@ export interface RouteSearchStation {
   accessCode: string;
   sourceStatus: string;
   lastSyncedAt: string;
-  isFavorite: false;
+  isFavorite: boolean;
 }
 
 export interface RouteSearchResult {
@@ -124,6 +128,7 @@ export interface RouteSearchServiceOptions {
   routingProvider: RoutingProvider;
   stationProvider: StationProvider;
   stationRepository: RouteSearchStationRepository;
+  favorites?: RouteSearchFavoriteRepository;
   cache: RouteSearchCache;
   onCacheError?: (operation: "read" | "write", error: unknown) => void;
 }
@@ -219,10 +224,16 @@ export function createRouteSearchService(options: RouteSearchServiceOptions): Ro
       const stationIdBySourceId = new Map(
         persistedStations.map((station) => [station.sourceStationId, station.id]),
       );
+      const favoriteStationIds = await findFavoriteStationIds(options, input.userId);
 
       const stations = discovery.stations
         .map((station) =>
-          toRouteSearchStation(station, stationIdBySourceId, vehicle.connectorTypes),
+          toRouteSearchStation(
+            station,
+            stationIdBySourceId,
+            vehicle.connectorTypes,
+            favoriteStationIds,
+          ),
         )
         .filter((station) => matchesFilters(station, input.filters))
         .sort(compareStations);
@@ -376,6 +387,21 @@ async function persistStations(
   }
 }
 
+async function findFavoriteStationIds(
+  options: RouteSearchServiceOptions,
+  userId: string,
+): Promise<ReadonlySet<string>> {
+  if (options.favorites === undefined) {
+    return new Set<string>();
+  }
+
+  try {
+    return new Set(await options.favorites.findStationIdsByUser(userId));
+  } catch (error: unknown) {
+    throw new RouteSearchPersistenceError(error);
+  }
+}
+
 function toRouteSearchLocation(location: GeocodedLocation): RouteSearchLocation {
   return {
     label: location.label,
@@ -388,6 +414,7 @@ function toRouteSearchStation(
   station: NormalizedStation,
   stationIdBySourceId: ReadonlyMap<string, string>,
   vehicleConnectorTypes: readonly VehicleConnectorType[],
+  favoriteStationIds: ReadonlySet<string>,
 ): RouteSearchStation {
   const id = stationIdBySourceId.get(station.sourceStationId);
 
@@ -411,7 +438,7 @@ function toRouteSearchStation(
     accessCode: station.accessCode,
     sourceStatus: station.sourceStatus,
     lastSyncedAt: station.sourceUpdatedAt,
-    isFavorite: false,
+    isFavorite: favoriteStationIds.has(id),
   };
 }
 

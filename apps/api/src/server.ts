@@ -6,6 +6,8 @@ import { createAuthenticationService } from "./auth/authentication-service.js";
 import { argon2PasswordHasher } from "./auth/password-hasher.js";
 import { createSessionInfrastructure } from "./auth/session-infrastructure.js";
 import { loadLocalEnvironment, parseEnvironment } from "./config/environment.js";
+import { createFavoriteDatabase } from "./favorites/favorite-database.js";
+import { createFavoriteService } from "./favorites/favorite-service.js";
 import { createInfrastructureHealthChecks } from "./health/infrastructure-health-checks.js";
 import { createLogger } from "./logging/logger.js";
 import {
@@ -96,6 +98,12 @@ const vehicleService = createVehicleService({
   runVehicleTransaction: vehicleDatabase.runVehicleTransaction,
 });
 
+const favoriteDatabase = createFavoriteDatabase(environment.DATABASE_URL);
+
+const favoriteService = createFavoriteService({
+  favorites: favoriteDatabase.favorites,
+});
+
 const routeSearchDatabase = createRouteSearchDatabase(environment.DATABASE_URL);
 
 const routeSearchService = createRouteSearchService({
@@ -104,6 +112,7 @@ const routeSearchService = createRouteSearchService({
   routingProvider: new OpenRouteServiceRoutingProvider(openRouteServiceApiKey),
   stationProvider: new NlrStationProvider(nlrApiKey),
   stationRepository: routeSearchDatabase.stations,
+  favorites: favoriteDatabase.favorites,
   cache: routeSearchCacheInfrastructure.cache,
   onCacheError: (operation, error) => {
     logger.warn(
@@ -120,6 +129,12 @@ const app = createApp({
   authentication: {
     service: authenticationService,
     rateLimiter: sessionInfrastructure.rateLimiter,
+    isProduction: environment.NODE_ENV === "production",
+    webOrigin: environment.WEB_ORIGIN,
+  },
+  favorites: {
+    service: favoriteService,
+    authenticationService,
     isProduction: environment.NODE_ENV === "production",
     webOrigin: environment.WEB_ORIGIN,
   },
@@ -149,6 +164,7 @@ function closeInfrastructure(): Promise<void> {
     routeSearchCacheInfrastructure.close(),
     authenticationDatabase.close(),
     vehicleDatabase.close(),
+    favoriteDatabase.close(),
     routeSearchDatabase.close(),
     infrastructureHealthChecks.close(),
   ]).then(() => undefined);
