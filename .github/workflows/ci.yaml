@@ -158,5 +158,10 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Build runtime workspace packages
+        run: |
+          pnpm --filter @chargewise/shared build
+          pnpm --filter @chargewise/database build
+
       - name: Run critical browser journeys
         run: pnpm e2e
