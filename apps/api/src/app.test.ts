@@ -1,6 +1,10 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import express from "express";
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { createApp } from "./app.js";
 import type { DependencyCheck, HealthChecks } from "./health/health-service.js";
@@ -80,7 +84,35 @@ const successfulHealthChecks: HealthChecks = {
   cache: successfulCheck,
 };
 
-function createTestApp(healthChecks: HealthChecks = successfulHealthChecks) {
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryDirectories.splice(0).map((directory) =>
+      rm(directory, {
+        force: true,
+        recursive: true,
+      }),
+    ),
+  );
+});
+
+async function createTestWebDistribution(): Promise<string> {
+  const directory = await mkdtemp(join(tmpdir(), "chargewise-web-"));
+  const assetsDirectory = join(directory, "assets");
+
+  temporaryDirectories.push(directory);
+  await mkdir(assetsDirectory);
+  await writeFile(
+    join(directory, "index.html"),
+    '<!doctype html><html><body><div id="root"></div></body></html>',
+  );
+  await writeFile(join(assetsDirectory, "application.js"), "window.__chargewise = true;");
+
+  return directory;
+}
+
+function createTestApp(healthChecks: HealthChecks = successfulHealthChecks, webDistPath?: string) {
   return createApp({
     authentication: {
       service: successfulAuthenticationService,
@@ -90,6 +122,7 @@ function createTestApp(healthChecks: HealthChecks = successfulHealthChecks) {
     },
     healthChecks,
     logger: createLogger("test"),
+    ...(webDistPath === undefined ? {} : { webDistPath }),
     webOrigin,
 
     routes: {
@@ -126,6 +159,9 @@ describe("API middleware", () => {
 
     expect(expectRequestId(response)).not.toBe("client-supplied-id");
     expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers["content-security-policy"]).toContain(
+      "https://*.tile.openstreetmap.org",
+    );
     expect(response.headers["access-control-allow-origin"]).toBe(webOrigin);
     expect(response.headers["access-control-allow-credentials"]).toBe("true");
     expect(response.headers["access-control-expose-headers"]).toBe("X-Request-ID");
@@ -162,6 +198,45 @@ describe("API middleware", () => {
       code: "UNAUTHENTICATED",
       message: "Authentication required",
       details: [],
+    });
+  });
+});
+
+describe("production web application", () => {
+  it("serves immutable hashed assets and the SPA entry point", async () => {
+    const webDistPath = await createTestWebDistribution();
+    const app = createTestApp(successfulHealthChecks, webDistPath);
+
+    const assetResponse = await request(app).get("/assets/application.js").expect(200);
+
+    expect(assetResponse.headers["cache-control"]).toContain("immutable");
+    expect(assetResponse.text).toContain("__chargewise");
+
+    const routeResponse = await request(app).get("/login").set("Accept", "text/html").expect(200);
+
+    expect(routeResponse.headers["cache-control"]).toBe("no-store");
+    expect(routeResponse.text).toContain('<div id="root"></div>');
+  });
+
+  it("keeps unknown API and non-HTML requests outside the SPA fallback", async () => {
+    const webDistPath = await createTestWebDistribution();
+    const app = createTestApp(successfulHealthChecks, webDistPath);
+
+    const apiResponse = await request(app).get("/api/v1/not-a-route").expect(404);
+
+    expect(apiResponse.body.error).toMatchObject({
+      code: "NOT_FOUND",
+      message: "Route not found",
+    });
+
+    const textResponse = await request(app)
+      .get("/not-a-document")
+      .set("Accept", "text/plain")
+      .expect(404);
+
+    expect(textResponse.body.error).toMatchObject({
+      code: "NOT_FOUND",
+      message: "Route not found",
     });
   });
 });

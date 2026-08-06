@@ -81,6 +81,7 @@ const environmentSchema = z
 
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
     WEB_ORIGIN: webOriginSchema,
+    WEB_DIST_PATH: z.string().trim().min(1).optional(),
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
     DATABASE_URL: databaseUrlSchema,
     REDIS_URL: redisUrlSchema,
@@ -94,6 +95,14 @@ const environmentSchema = z
   .superRefine((value, context) => {
     if (value.NODE_ENV !== "production") {
       return;
+    }
+
+    if (value.WEB_DIST_PATH === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["WEB_DIST_PATH"],
+        message: "Production must provide the built web application directory",
+      });
     }
 
     if (value.ROUTE_PROVIDER_MODE !== "live") {
@@ -148,7 +157,12 @@ export function loadLocalEnvironment(): void {
 export function parseEnvironment(
   input: Record<string, string | undefined> = process.env,
 ): ApiEnvironment {
-  const result = environmentSchema.safeParse(input);
+  const normalizedInput = {
+    ...input,
+    API_PORT: input.API_PORT ?? input.PORT,
+    WEB_ORIGIN: input.WEB_ORIGIN ?? input.RENDER_EXTERNAL_URL,
+  };
+  const result = environmentSchema.safeParse(normalizedInput);
 
   if (!result.success) {
     throw new Error(`Invalid environment configuration:\n${z.prettifyError(result.error)}`);

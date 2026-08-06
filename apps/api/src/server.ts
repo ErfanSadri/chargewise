@@ -201,6 +201,7 @@ const app = createApp({
   healthChecks: infrastructureHealthChecks.checks,
   logger,
   trustProxyHops: environment.TRUST_PROXY_HOPS,
+  ...(environment.WEB_DIST_PATH === undefined ? {} : { webDistPath: environment.WEB_DIST_PATH }),
   webOrigin: environment.WEB_ORIGIN,
   vehicles: {
     service: vehicleService,
@@ -383,9 +384,10 @@ async function startServer(): Promise<void> {
     return;
   }
 
-  server = app.listen(environment.API_PORT, () => {
+  server = app.listen(environment.API_PORT, "0.0.0.0", () => {
     logger.info(
       {
+        host: "0.0.0.0",
         port: environment.API_PORT,
       },
       "ChargeWise API started",
