@@ -42,7 +42,7 @@
   gap: 1rem;
 }
 
-.route-search-form input,
+.route-search-form input:not([type="checkbox"]),
 .route-search-form select {
   width: 100%;
   min-height: 3rem;
@@ -53,10 +53,26 @@
   border-radius: 0.7rem;
 }
 
-.route-search-form input:focus,
+.route-search-form input:not([type="checkbox"]):focus,
 .route-search-form select:focus {
   outline: 3px solid rgb(23 107 69 / 20%);
   border-color: var(--color-brand);
+}
+
+.route-search-form .checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.route-search-form input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-height: 1rem;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: var(--color-brand);
 }
 
 .route-search-form__filters {

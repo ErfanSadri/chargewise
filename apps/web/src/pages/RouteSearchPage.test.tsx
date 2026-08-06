@@ -209,6 +209,26 @@ describe("route-search UI", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers a practical station-distance range", async () => {
+    vi.mocked(listVehicles).mockResolvedValue([vehicle]);
+
+    renderPage();
+
+    const corridorSelect = await screen.findByLabelText("Station distance from route");
+
+    expect(corridorSelect).toHaveValue("5");
+    expect(
+      screen.getByRole("option", {
+        name: "25 miles",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", {
+        name: "50 miles",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps station-list and map-marker selection synchronized", async () => {
     vi.mocked(listVehicles).mockResolvedValue([vehicle]);
     vi.mocked(searchRoute).mockResolvedValue(routeResponse);
@@ -255,7 +275,7 @@ describe("route-search UI", () => {
 
     expect(searchRoute).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Review the origin, destination, vehicle, corridor, and search preferences.",
+      "Enter an origin and destination, choose a vehicle, and select a station distance.",
     );
     expect(screen.getByLabelText("Origin")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Origin")).toHaveFocus();

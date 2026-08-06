@@ -41,6 +41,7 @@ describe("OpenRouteServiceGeocodingProvider", () => {
     expect(url.pathname).toBe("/pelias/v1/search");
     expect(url.searchParams.get("text")).toBe("Woodland Hills, CA");
     expect(url.searchParams.get("size")).toBe("5");
+    expect(url.searchParams.get("boundary.country")).toBe("US");
     expect(headers.get("Authorization")).toBe("ors-secret");
   });
 

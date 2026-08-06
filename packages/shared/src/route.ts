@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { vehicleConnectorTypeSchema } from "./vehicle.js";
 
-const maximumCorridorMeters = 100 * 1609.344;
+const maximumCorridorMeters = 25 * 1609.344;
 
 function hasUniqueValues(values: readonly string[]): boolean {
   return new Set(values).size === values.length;

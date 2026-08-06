@@ -16,7 +16,7 @@ import {
 } from "../providers/index.js";
 import type { VehicleRepository } from "../vehicles/vehicle-repository.js";
 
-const maximumCorridorMeters = 100 * 1609.344;
+const maximumCorridorMeters = 25 * 1609.344;
 
 const routeSearchFiltersSchema = z
   .object({
@@ -197,7 +197,7 @@ export function createRouteSearchCacheKey(
 
   const digest = createHash("sha256").update(canonicalInput).digest("hex");
 
-  return `route-search:v1:${digest}`;
+  return `route-search:v2:${digest}`;
 }
 
 export function createRouteSearchService(options: RouteSearchServiceOptions): RouteSearchService {
@@ -283,6 +283,18 @@ export function createRouteSearchService(options: RouteSearchServiceOptions): Ro
   };
 }
 
+const unitedStatesLocationLabelPattern =
+  /,\s*(?:United States(?: of America)?|U\.S\.A\.?|USA|US)\s*$/iu;
+
+function selectLocationCandidate(
+  candidates: readonly GeocodedLocation[],
+): GeocodedLocation | undefined {
+  return (
+    candidates.find((candidate) => unitedStatesLocationLabelPattern.test(candidate.label)) ??
+    candidates[0]
+  );
+}
+
 async function discoverRoute(
   options: RouteSearchServiceOptions,
   input: RouteSearchInput,
@@ -296,13 +308,13 @@ async function discoverRoute(
     ),
   ]);
 
-  const origin = originCandidates[0];
+  const origin = selectLocationCandidate(originCandidates);
 
   if (origin === undefined) {
     throw new LocationNotResolvedError("origin");
   }
 
-  const destination = destinationCandidates[0];
+  const destination = selectLocationCandidate(destinationCandidates);
 
   if (destination === undefined) {
     throw new LocationNotResolvedError("destination");

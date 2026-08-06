@@ -16,6 +16,7 @@ import { focusFirstInvalidFormControl } from "../forms/form-accessibility.ts";
 import "./RouteSearchPage.css";
 
 const metersPerMile = 1609.344;
+const corridorOptions = [5, 10, 15, 25] as const;
 const chargingLevelOptions: readonly {
   value: RouteChargingLevel;
   label: string;
@@ -42,7 +43,7 @@ function getNetworks(formData: FormData): string[] {
 }
 
 function getValidationMessage(): string {
-  return "Review the origin, destination, vehicle, corridor, and search preferences.";
+  return "Enter an origin and destination, choose a vehicle, and select a station distance.";
 }
 
 function getRouteSearchInvalidFields(
@@ -206,15 +207,21 @@ export function RouteSearchPage() {
                 <input
                   aria-invalid={invalidFields.has("origin")}
                   aria-describedby={
-                    invalidFields.has("origin") ? "route-search-form-error" : undefined
+                    invalidFields.has("origin")
+                      ? "route-origin-hint route-search-form-error"
+                      : "route-origin-hint"
                   }
                   autoComplete="street-address"
                   id="route-origin"
                   maxLength={240}
                   name="origin"
-                  placeholder="Woodland Hills, CA"
+                  placeholder="Woodland Hills, CA 91364"
                   required
                 />
+                <p className="form-field__hint" id="route-origin-hint">
+                  Include a city and state or ZIP code. ChargeWise currently searches U.S.
+                  locations.
+                </p>
               </div>
 
               <div className="form-field">
@@ -222,7 +229,9 @@ export function RouteSearchPage() {
                 <input
                   aria-invalid={invalidFields.has("destination")}
                   aria-describedby={
-                    invalidFields.has("destination") ? "route-search-form-error" : undefined
+                    invalidFields.has("destination")
+                      ? "route-destination-hint route-search-form-error"
+                      : "route-destination-hint"
                   }
                   autoComplete="street-address"
                   id="route-destination"
@@ -231,6 +240,9 @@ export function RouteSearchPage() {
                   placeholder="UC San Diego, La Jolla, CA"
                   required
                 />
+                <p className="form-field__hint" id="route-destination-hint">
+                  Use a city and state, ZIP code, street address, or well-known destination.
+                </p>
               </div>
             </div>
 
@@ -258,33 +270,33 @@ export function RouteSearchPage() {
               </div>
 
               <div className="form-field">
-                <label htmlFor="route-corridor">Search corridor</label>
-                <div className="input-with-unit">
-                  <input
-                    aria-invalid={invalidFields.has("corridorMiles")}
-                    aria-describedby={
-                      invalidFields.has("corridorMiles") ? "route-search-form-error" : undefined
-                    }
-                    defaultValue="5"
-                    id="route-corridor"
-                    inputMode="decimal"
-                    max="100"
-                    min="0.1"
-                    name="corridorMiles"
-                    required
-                    step="0.1"
-                    type="number"
-                  />
-                  <span>miles</span>
-                </div>
-                <p className="form-field__hint">
-                  Stations within this distance of the route are considered.
+                <label htmlFor="route-corridor">Station distance from route</label>
+                <select
+                  aria-invalid={invalidFields.has("corridorMiles")}
+                  aria-describedby={
+                    invalidFields.has("corridorMiles")
+                      ? "route-corridor-hint route-search-form-error"
+                      : "route-corridor-hint"
+                  }
+                  defaultValue="5"
+                  id="route-corridor"
+                  name="corridorMiles"
+                >
+                  {corridorOptions.map((miles) => (
+                    <option key={miles} value={miles}>
+                      {miles} miles
+                    </option>
+                  ))}
+                </select>
+                <p className="form-field__hint" id="route-corridor-hint">
+                  Five miles is recommended. Larger distances return more stations; the maximum is
+                  25 miles.
                 </p>
               </div>
             </div>
 
             <details className="route-search-form__filters">
-              <summary>Search preferences</summary>
+              <summary>Optional filters</summary>
 
               <div className="route-search-form__filter-content">
                 <fieldset>

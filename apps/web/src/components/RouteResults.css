@@ -100,7 +100,7 @@
   gap: 0.8rem;
 }
 
-.station-filters input,
+.station-filters input:not([type="checkbox"]),
 .station-filters select {
   width: 100%;
   min-height: 2.8rem;
@@ -111,10 +111,26 @@
   border-radius: 0.65rem;
 }
 
-.station-filters input:focus,
+.station-filters input:not([type="checkbox"]):focus,
 .station-filters select:focus {
   outline: 3px solid rgb(23 107 69 / 20%);
   border-color: var(--color-brand);
+}
+
+.station-filters .checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.station-filters input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-height: 1rem;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: var(--color-brand);
 }
 
 .station-filters__footer {

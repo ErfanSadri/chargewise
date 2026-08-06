@@ -312,6 +312,36 @@ describe("route search service", () => {
     expect(dependencies.findAlongRoute).not.toHaveBeenCalled();
   });
 
+  it("prefers a United States candidate when a foreign match is ranked first", async () => {
+    const canadianOrigin: GeocodedLocation = {
+      label: "Woodland Hills, Newmarket, ON, Canada",
+      longitude: -79.4667,
+      latitude: 44.0592,
+    };
+    const unitedStatesOrigin: GeocodedLocation = {
+      ...origin,
+      label: "Woodland Hills, Los Angeles, California, United States",
+    };
+
+    vi.mocked(dependencies.geocode)
+      .mockReset()
+      .mockResolvedValueOnce([canadianOrigin, unitedStatesOrigin])
+      .mockResolvedValueOnce([destination]);
+
+    const service = createRouteSearchService(dependencies.options);
+
+    await expect(service.search(searchInput)).resolves.toMatchObject({
+      route: {
+        origin: unitedStatesOrigin,
+      },
+    });
+
+    expect(dependencies.createRoute).toHaveBeenCalledWith({
+      origin: [unitedStatesOrigin.longitude, unitedStatesOrigin.latitude],
+      destination: [destination.longitude, destination.latitude],
+    });
+  });
+
   it("converts a provider failure into a known service error", async () => {
     vi.mocked(dependencies.createRoute).mockRejectedValue(
       new Error("private upstream failure details"),
@@ -438,6 +468,19 @@ describe("route search service", () => {
     expect(dependencies.findByIdForUser).not.toHaveBeenCalled();
   });
 
+  it("rejects a corridor wider than 25 miles before reading user-owned data", async () => {
+    const service = createRouteSearchService(dependencies.options);
+
+    await expect(
+      service.search({
+        ...searchInput,
+        corridorMeters: 25 * 1609.344 + 1,
+      }),
+    ).rejects.toBeInstanceOf(InvalidRouteSearchInputError);
+
+    expect(dependencies.findByIdForUser).not.toHaveBeenCalled();
+  });
+
   it("rejects incomplete station persistence results", async () => {
     vi.mocked(dependencies.upsertMany).mockResolvedValue([
       {
@@ -451,19 +494,19 @@ describe("route search service", () => {
     await expect(service.search(searchInput)).rejects.toBeInstanceOf(RouteSearchPersistenceError);
   });
 
-  it("creates the same cache key for equivalent address casing and whitespace", () => {
-    expect(
-      createRouteSearchCacheKey({
-        origin: "  Woodland   Hills, CA ",
-        destination: "UC SAN DIEGO, LA JOLLA, CA",
-        corridorMeters: 8000,
-      }),
-    ).toBe(
-      createRouteSearchCacheKey({
-        origin: "woodland hills, ca",
-        destination: "uc san diego, la jolla, ca",
-        corridorMeters: 8000,
-      }),
-    );
+  it("creates a versioned cache key for equivalent address casing and whitespace", () => {
+    const firstKey = createRouteSearchCacheKey({
+      origin: "  Woodland   Hills, CA ",
+      destination: "UC SAN DIEGO, LA JOLLA, CA",
+      corridorMeters: 8000,
+    });
+    const secondKey = createRouteSearchCacheKey({
+      origin: "woodland hills, ca",
+      destination: "uc san diego, la jolla, ca",
+      corridorMeters: 8000,
+    });
+
+    expect(firstKey).toBe(secondKey);
+    expect(firstKey).toMatch(/^route-search:v2:/u);
   });
 });
