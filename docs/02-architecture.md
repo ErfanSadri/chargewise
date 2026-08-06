@@ -1,7 +1,6 @@
 # ChargeWise v1 Architecture
 
-**Status:** Phase 0 source of truth  
-**Last updated:** 2026-08-02
+**Status:** v1 production architecture | **Last updated:** 2026-08-06
 
 ## 1. Architectural goals
 
@@ -35,15 +34,17 @@ and analytics.
 chargewise/
 ├── apps/
 │   ├── web/                 # React application
-│   ├── api/                 # Express HTTP application
-│   └── worker/              # P1 scheduled/background work
+│   └── api/                 # Express HTTP application
 ├── packages/
 │   ├── shared/              # API DTOs, Zod schemas, enums
 │   ├── database/            # Drizzle schema, migrations, repositories
-│   └── config/              # Shared TypeScript/lint configuration
+│   └── config/              # Workspace configuration package
+├── e2e/                     # Playwright critical journeys
 ├── docs/
-├── tests/
-├── docker-compose.yml
+├── scripts/
+├── compose.yaml
+├── Dockerfile
+├── render.yaml
 └── pnpm-workspace.yaml
 ```
 
@@ -246,22 +247,20 @@ raw upstream bodies. Logs include a request ID so failures can be correlated.
 
 ```mermaid
 flowchart TB
-    B[Browser] --> CDN[Static web deployment]
-    B --> API[Containerized API]
-    API --> PG[(Managed Postgres + PostGIS)]
-    API --> Redis[(Managed Redis)]
-    API --> Providers[External APIs]
+    B[Browser] --> R[Render Docker web service]
+    R --> W[Compiled React application]
+    R --> API[Express API]
+    API --> PG[(Neon PostgreSQL + PostGIS)]
+    API --> Redis[(Upstash Redis over TLS)]
+    API --> ORS[openrouteservice]
+    API --> NLR[NLR station API]
 ```
 
-Provider selection is deferred until the deployment milestone, but these
-requirements are fixed:
-
-- containerized Node runtime;
-- managed PostgreSQL with PostGIS support;
-- managed Redis with TLS;
-- separate secrets for development, CI, and production;
-- health endpoint and structured application logs;
-- database migrations executed as an explicit release step.
+The React build and Express API share one production origin. Render runs the
+container, Neon provides pooled runtime and direct migration connections, and
+Upstash provides TLS Redis. The startup command applies packaged migrations
+before Express starts, and Render probes the PostgreSQL-and-Redis readiness
+endpoint before considering the service live.
 
 ## 12. Architecture guardrails
 
