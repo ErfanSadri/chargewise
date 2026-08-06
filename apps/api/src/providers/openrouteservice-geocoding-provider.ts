@@ -73,6 +73,7 @@ export class OpenRouteServiceGeocodingProvider implements GeocodingProvider {
     const url = new URL("pelias/v1/search", this.baseUrl);
     url.searchParams.set("text", normalizedQuery);
     url.searchParams.set("size", String(this.resultLimit));
+    url.searchParams.set("boundary.country", "US");
 
     const payload = await requestProviderJson({
       provider: providerName,
