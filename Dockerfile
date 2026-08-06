@@ -26,4 +26,4 @@ USER node
 
 EXPOSE 10000
 
-CMD ["node", "dist/server.js"]
+CMD ["sh", "-c", "node dist/deployment/migrate.js && exec node dist/server.js"]

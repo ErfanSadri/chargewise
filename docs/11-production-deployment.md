@@ -39,7 +39,7 @@ Do not commit any of these values.
 ## Render Blueprint
 
 The repository-root `render.yaml` defines the Docker service, readiness path,
-pre-deploy migration, and non-secret production settings.
+startup migration behavior and non-secret production settings.
 
 In Render:
 
@@ -73,7 +73,7 @@ The image build:
 4. copies the compiled Vite application into `/app/web`;
 5. runs as the non-root `node` user.
 
-Before a new image receives traffic, Render runs:
+When a Render Free instance starts, the Docker command runs:
 
 ```text
 node dist/deployment/migrate.js
@@ -128,8 +128,8 @@ against the deployed service.
 
 ## Rollback and recovery
 
-- A failed pre-deploy migration stops the release before the new image goes
-  live. Correct the configuration or migration and redeploy.
+- A failed startup migration prevents the new instance from starting and becoming
+  healthy. Correct the configuration or migration and redeploy.
 - A failed readiness check keeps unhealthy instances out of traffic. Inspect the
   structured logs and managed-service status pages.
 - Render can roll back to a recent successful deploy, but database migrations
