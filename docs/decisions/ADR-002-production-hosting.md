@@ -31,7 +31,7 @@ Use:
 - Neon's direct connection string for the release migration;
 - Upstash Redis through its TLS `rediss://` endpoint;
 - Render's HTTP health check at `/api/v1/health`;
-- Render's pre-deploy command for Drizzle migrations.
+- the Docker startup command runs Drizzle migrations before Express starts.
 
 Render supplies `PORT` and `RENDER_EXTERNAL_URL`. ChargeWise maps those platform
 variables to its existing `API_PORT` and `WEB_ORIGIN` contract.
@@ -46,7 +46,7 @@ more configuration while the browser already uses same-origin API paths.
 ### Railway or Fly.io
 
 Both can run the container, but Render's Docker web service, Blueprint,
-pre-deploy command, and HTTP readiness check map directly to the current release
+Docker runtime, and HTTP readiness check map directly to the current release
 requirements. The container remains portable if the hosting provider changes.
 
 ### Hosting PostgreSQL and Redis inside the application container
