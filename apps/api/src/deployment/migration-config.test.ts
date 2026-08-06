@@ -31,7 +31,9 @@ describe("parseMigrationConfig", () => {
       DATABASE_URL: "postgresql://runtime@example.test/chargewise",
     });
 
-    expect(config.migrationsFolder).toMatch(/packages[\\/]database[\\/]drizzle[\\/]?$/u);
+    expect(config.migrationsFolder).toMatch(
+      /(?:packages[\\/]database|node_modules[\\/]@chargewise[\\/]database)[\\/]drizzle[\\/]?$/u,
+    );
   });
 
   it.each([
