@@ -1,8 +1,6 @@
 # ChargeWise v1 Product Requirements Document
 
-**Status:** Approved for Phase 0 design  
-**Last updated:** 2026-08-02  
-**Owner:** Erfan Sadri
+**Status:** v1 deployed | **Last updated:** 2026-08-06 | **Owner:** Erfan Sadri
 
 ## 1. Product statement
 
